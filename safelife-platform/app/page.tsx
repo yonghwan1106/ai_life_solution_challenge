@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Shield, Smartphone, ScanBarcode, Eye } from 'lucide-react'
+import { Shield, Smartphone, ScanBarcode, Eye, Info } from 'lucide-react'
 
 export default function Home() {
   return (
@@ -12,7 +12,16 @@ export default function Home() {
               <Shield className="w-10 h-10 text-indigo-600" />
               <h1 className="text-3xl font-bold text-gray-900">SafeLife</h1>
             </div>
-            <p className="text-sm text-gray-600">고령자를 위한 AI 생활 안전 플랫폼</p>
+            <div className="flex items-center space-x-6">
+              <p className="text-sm text-gray-600 hidden sm:block">고령자를 위한 AI 생활 안전 플랫폼</p>
+              <Link
+                href="/about"
+                className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 transition-colors font-medium text-sm"
+              >
+                <Info className="w-4 h-4" />
+                <span>프로젝트 소개</span>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -104,7 +113,7 @@ export default function Home() {
           <p className="text-lg mb-6 opacity-90">
             SafeLife와 함께 더 안전하고 편리한 디지털 생활을 경험하세요
           </p>
-          <div className="flex justify-center space-x-4">
+          <div className="flex flex-wrap justify-center gap-4">
             <Link
               href="/barcode"
               className="bg-white text-indigo-600 px-8 py-3 rounded-full font-semibold hover:bg-gray-100 transition-colors"
@@ -116,6 +125,13 @@ export default function Home() {
               className="bg-indigo-700 text-white px-8 py-3 rounded-full font-semibold hover:bg-indigo-800 transition-colors border-2 border-white"
             >
               보호자 모드
+            </Link>
+            <Link
+              href="/about"
+              className="bg-purple-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-purple-700 transition-colors border-2 border-white flex items-center space-x-2"
+            >
+              <Info className="w-5 h-5" />
+              <span>프로젝트 소개</span>
             </Link>
           </div>
         </div>
