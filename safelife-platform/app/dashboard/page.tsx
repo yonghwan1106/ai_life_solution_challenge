@@ -25,6 +25,7 @@ interface ElderlyUser {
   name: string
   status: 'safe' | 'warning' | 'danger'
   lastActivity: Date
+  photo?: string
 }
 
 interface Alert {
@@ -54,13 +55,15 @@ export default function DashboardPage() {
       id: '1',
       name: '어머니 (김순자)',
       status: 'safe',
-      lastActivity: new Date(Date.now() - 30 * 60000) // 30 minutes ago
+      lastActivity: new Date(Date.now() - 30 * 60000), // 30 minutes ago
+      photo: 'https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=200&h=200&fit=crop&q=80'
     },
     {
       id: '2',
       name: '아버지 (김철수)',
       status: 'warning',
-      lastActivity: new Date(Date.now() - 2 * 60 * 60000) // 2 hours ago
+      lastActivity: new Date(Date.now() - 2 * 60 * 60000), // 2 hours ago
+      photo: 'https://images.unsplash.com/photo-1566616213894-2d4e1baee5d8?w=200&h=200&fit=crop&q=80'
     }
   ])
 
@@ -219,10 +222,15 @@ export default function DashboardPage() {
 
             <div className="flex items-center space-x-5">
               <div className="relative">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-110 hover:rotate-6 transition-all duration-500">
-                  <Eye className="w-8 h-8 text-white" />
-                </div>
+                <img
+                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&q=80"
+                  alt="보호자 프로필"
+                  className="w-20 h-20 rounded-2xl object-cover border-4 border-white shadow-lg transform hover:scale-110 hover:rotate-6 transition-all duration-500"
+                />
                 <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
+                <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-gradient-to-br from-purple-400 to-indigo-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                  <Eye className="w-5 h-5 text-white" />
+                </div>
               </div>
 
               <div className="flex-1">
@@ -294,22 +302,35 @@ export default function DashboardPage() {
                 className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center space-x-4">
-                  <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                      user.status === 'safe'
-                        ? 'bg-green-100'
-                        : user.status === 'warning'
-                        ? 'bg-yellow-100'
-                        : 'bg-red-100'
-                    }`}
-                  >
-                    {user.status === 'safe' ? (
-                      <CheckCircle className="w-6 h-6 text-green-600" />
-                    ) : user.status === 'warning' ? (
-                      <AlertTriangle className="w-6 h-6 text-yellow-600" />
+                  <div className="relative">
+                    {user.photo ? (
+                      <img
+                        src={user.photo}
+                        alt={user.name}
+                        className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-lg"
+                      />
                     ) : (
-                      <AlertTriangle className="w-6 h-6 text-red-600" />
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center shadow-lg">
+                        <span className="text-white text-xl font-bold">
+                          {user.name.charAt(0)}
+                        </span>
+                      </div>
                     )}
+                    <div
+                      className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center ${
+                        user.status === 'safe'
+                          ? 'bg-green-500'
+                          : user.status === 'warning'
+                          ? 'bg-yellow-500'
+                          : 'bg-red-500'
+                      }`}
+                    >
+                      {user.status === 'safe' ? (
+                        <CheckCircle className="w-4 h-4 text-white" />
+                      ) : (
+                        <AlertTriangle className="w-4 h-4 text-white" />
+                      )}
+                    </div>
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">{user.name}</h3>
