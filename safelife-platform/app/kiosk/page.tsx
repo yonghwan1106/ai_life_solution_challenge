@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Webcam from 'react-webcam'
-import { ArrowLeft, Camera, Volume2, Info, Zap, StopCircle } from 'lucide-react'
+import { Smartphone, Camera, Volume2, Info, Zap, StopCircle } from 'lucide-react'
 import { speak, stopSpeaking } from '@/lib/utils'
+import PageHeader from '@/components/PageHeader'
 
 interface DetectedStep {
   step: number
@@ -132,28 +133,34 @@ export default function KioskPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center text-gray-600 hover:text-gray-900">
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              <span>홈으로</span>
-            </Link>
-            <h1 className="text-2xl font-bold text-gray-900">AI 키오스크 도우미</h1>
-            <div className="w-20"></div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-cyan-50 to-sky-50"></div>
+        <div className="absolute inset-0 pattern-dots opacity-30"></div>
+        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float"></div>
+        <div className="absolute top-40 right-10 w-72 h-72 bg-cyan-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute -bottom-20 left-40 w-72 h-72 bg-sky-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: '4s' }}></div>
+      </div>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <PageHeader
+        title="AI 키오스크 도우미"
+        description="화면을 인식하여 주문 과정을 단계별로 안내합니다"
+        icon={Smartphone}
+        gradientFrom="from-blue-400"
+        gradientTo="to-cyan-500"
+      />
+
+      <main className="max-w-6xl mx-auto px-4 pb-8">
         {/* Instructions */}
-        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
+        <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-6 mb-6 overflow-hidden border border-blue-100">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-500"></div>
           <div className="flex items-start">
-            <Info className="w-6 h-6 text-blue-500 mr-3 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-lg font-semibold text-blue-900 mb-2">사용 방법</h3>
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-xl flex items-center justify-center flex-shrink-0 mr-4">
+              <Info className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-gray-900 mb-3">사용 방법</h3>
               <ol className="list-decimal list-inside text-blue-800 space-y-1">
                 <li className="text-base">화면 분석 시작 버튼을 눌러주세요</li>
                 <li className="text-base">키오스크 화면을 카메라에 비춰주세요</li>
@@ -165,7 +172,8 @@ export default function KioskPage() {
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Camera Feed */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-8 overflow-hidden border border-blue-100">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-500"></div>
             <h2 className="text-xl font-bold text-gray-900 mb-4">카메라</h2>
 
             <div className="relative bg-gray-900 rounded-lg overflow-hidden" style={{ aspectRatio: '4/3' }}>
@@ -215,7 +223,8 @@ export default function KioskPage() {
           </div>
 
           {/* Current Instruction */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-8 overflow-hidden border border-blue-100">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-500"></div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-900">현재 안내</h2>
               {currentStep && (

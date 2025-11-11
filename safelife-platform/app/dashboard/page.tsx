@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ArrowLeft,
   AlertTriangle,
   CheckCircle,
   Clock,
@@ -15,9 +14,11 @@ import {
   Smartphone,
   Bell,
   Activity,
-  LogOut
+  LogOut,
+  Eye
 } from 'lucide-react'
 import { auth, type User } from '@/lib/pocketbase'
+import PageHeader from '@/components/PageHeader'
 
 interface ElderlyUser {
   id: string
@@ -171,44 +172,77 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center text-gray-600 hover:text-gray-900">
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              <span>홈으로</span>
-            </Link>
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-gray-900">보호자 대시보드</h1>
-              <p className="text-sm text-gray-500">{user?.name}님 환영합니다</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <Bell className="w-6 h-6 text-gray-600" />
-                {unacknowledgedCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                    {unacknowledgedCount}
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={handleLogout}
-                className="flex items-center text-gray-600 hover:text-gray-900"
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-50 via-indigo-50 to-violet-50"></div>
+        <div className="absolute inset-0 pattern-dots opacity-30"></div>
+        <div className="absolute top-20 left-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float"></div>
+        <div className="absolute top-40 right-10 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute -bottom-20 left-40 w-72 h-72 bg-violet-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: '4s' }}></div>
+      </div>
+
+      {/* Header with custom actions */}
+      <div className="relative overflow-hidden mb-8">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-400 to-indigo-500 opacity-5"></div>
+          <div className="absolute inset-0 pattern-dots opacity-20"></div>
+        </div>
+
+        <div className="relative glass-effect border-b border-white/20">
+          <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-6">
+              <Link
+                href="/"
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
               >
-                <LogOut className="w-5 h-5 mr-1" />
-                <span className="text-sm">로그아웃</span>
-              </button>
+                <span className="text-sm font-medium">← 홈으로</span>
+              </Link>
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <Bell className="w-6 h-6 text-gray-600 hover:text-gray-900 cursor-pointer transition-colors" />
+                  {unacknowledgedCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                      {unacknowledgedCount}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span className="text-sm font-medium">로그아웃</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-5">
+              <div className="relative">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-110 hover:rotate-6 transition-all duration-500">
+                  <Eye className="w-8 h-8 text-white" />
+                </div>
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
+              </div>
+
+              <div className="flex-1">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-indigo-500 bg-clip-text text-transparent mb-2">
+                  보호자 대시보드
+                </h1>
+                <p className="text-gray-600 text-base">{user?.name}님, 환영합니다! 가족의 안전 상태를 실시간으로 모니터링합니다</p>
+              </div>
             </div>
           </div>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+        <div className="h-1 bg-gradient-to-r from-purple-400 to-indigo-500"></div>
+      </div>
+
+      <main className="max-w-7xl mx-auto px-4 pb-8">
         {/* Quick Stats */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-6 overflow-hidden border border-purple-100">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-400 to-indigo-500"></div>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500 mb-1">보호 중인 가족</p>
@@ -220,7 +254,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-6 overflow-hidden border border-red-100">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-400 to-pink-500"></div>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500 mb-1">미확인 알림</p>
@@ -232,7 +267,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-6 overflow-hidden border border-green-100">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 to-emerald-500"></div>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500 mb-1">이번 주 활동</p>
@@ -248,7 +284,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Elderly Users Status */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-8 mb-8 overflow-hidden border border-purple-100">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-400 to-indigo-500"></div>
           <h2 className="text-xl font-bold text-gray-900 mb-6">가족 상태</h2>
           <div className="space-y-4">
             {elderlyUsers.map(user => (
@@ -308,7 +345,8 @@ export default function DashboardPage() {
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Recent Alerts */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-8 overflow-hidden border border-red-100">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-400 to-pink-500"></div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900">최근 알림</h2>
               <span className="text-sm text-gray-500">{alerts.length}개의 알림</span>
@@ -355,7 +393,8 @@ export default function DashboardPage() {
           </div>
 
           {/* Activity Statistics */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-8 overflow-hidden border border-purple-100">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-400 to-indigo-500"></div>
             <h2 className="text-xl font-bold text-gray-900 mb-6">이번 주 활동 통계</h2>
             <div className="space-y-4">
               {activityStats.map((stat, idx) => {

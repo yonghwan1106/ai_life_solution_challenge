@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Mic, MicOff, AlertTriangle, Shield, Phone, Info, Bell, Brain } from 'lucide-react'
+import { Mic, MicOff, AlertTriangle, Shield, Phone, Info, Bell, Brain } from 'lucide-react'
 import { speak } from '@/lib/utils'
 import { analyzeVoicePhishingWithGPT4 } from '@/lib/openai-service'
+import PageHeader from '@/components/PageHeader'
 
 interface CallAnalysis {
   timestamp: Date
@@ -170,28 +171,34 @@ export default function VoicePhishingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center text-gray-600 hover:text-gray-900">
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              <span>홈으로</span>
-            </Link>
-            <h1 className="text-2xl font-bold text-gray-900">보이스피싱 실시간 감지</h1>
-            <div className="w-20"></div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-red-50 via-pink-50 to-orange-50"></div>
+        <div className="absolute inset-0 pattern-dots opacity-30"></div>
+        <div className="absolute top-20 left-10 w-72 h-72 bg-red-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float"></div>
+        <div className="absolute top-40 right-10 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute -bottom-20 left-40 w-72 h-72 bg-orange-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: '4s' }}></div>
+      </div>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <PageHeader
+        title="보이스피싱 실시간 감지"
+        description="AI가 통화 내용을 실시간 분석하여 보이스피싱을 차단합니다"
+        icon={Shield}
+        gradientFrom="from-red-400"
+        gradientTo="to-pink-500"
+      />
+
+      <main className="max-w-6xl mx-auto px-4 pb-8">
         {/* Instructions */}
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
+        <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-6 mb-6 overflow-hidden border border-red-100">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-400 to-pink-500"></div>
           <div className="flex items-start">
-            <AlertTriangle className="w-6 h-6 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-lg font-semibold text-red-900 mb-2">사용 방법</h3>
+            <div className="w-12 h-12 bg-gradient-to-br from-red-400 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0 mr-4">
+              <AlertTriangle className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-gray-900 mb-3">사용 방법</h3>
               <ol className="list-decimal list-inside text-red-800 space-y-1">
                 <li className="text-base">통화 중 모니터링 시작 버튼을 눌러주세요</li>
                 <li className="text-base">AI가 실시간으로 통화 내용을 분석합니다</li>
@@ -204,7 +211,8 @@ export default function VoicePhishingPage() {
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Monitoring Panel */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-8 overflow-hidden border border-red-100">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-400 to-pink-500"></div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900">통화 모니터링</h2>
               {isListening && (
@@ -283,7 +291,8 @@ export default function VoicePhishingPage() {
           </div>
 
           {/* Analysis Result */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-8 overflow-hidden border border-red-100">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-400 to-pink-500"></div>
             <h2 className="text-xl font-bold text-gray-900 mb-6">분석 결과</h2>
 
             {currentAnalysis ? (
