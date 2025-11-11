@@ -56,14 +56,14 @@ export default function DashboardPage() {
       name: '어머니 (김순자)',
       status: 'safe',
       lastActivity: new Date(Date.now() - 30 * 60000), // 30 minutes ago
-      photo: 'https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=200&h=200&fit=crop&q=80'
+      photo: 'https://images.unsplash.com/photo-1503235930437-8c6293ba41f5?w=200&h=200&fit=crop&q=80'
     },
     {
       id: '2',
       name: '아버지 (김철수)',
       status: 'warning',
       lastActivity: new Date(Date.now() - 2 * 60 * 60000), // 2 hours ago
-      photo: 'https://images.unsplash.com/photo-1566616213894-2d4e1baee5d8?w=200&h=200&fit=crop&q=80'
+      photo: 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=200&h=200&fit=crop&q=80'
     }
   ])
 
@@ -223,7 +223,7 @@ export default function DashboardPage() {
             <div className="flex items-center space-x-5">
               <div className="relative">
                 <img
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&q=80"
+                  src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop&q=80"
                   alt="보호자 프로필"
                   className="w-20 h-20 rounded-2xl object-cover border-4 border-white shadow-lg transform hover:scale-110 hover:rotate-6 transition-all duration-500"
                 />
