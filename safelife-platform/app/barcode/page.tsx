@@ -7,6 +7,7 @@ import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/
 import { ArrowLeft, Camera, Volume2, AlertTriangle, Info } from 'lucide-react'
 import { speak, stopSpeaking } from '@/lib/utils'
 import { productsApi, scanHistoryApi, type Product } from '@/lib/pocketbase'
+import { getProductByBarcode, convertToProductInfo } from '@/lib/food-safety-api'
 
 interface ProductInfo {
   code: string
@@ -15,6 +16,9 @@ interface ProductInfo {
   ingredients: string[]
   allergens: string[]
   warnings: string[]
+  category?: string
+  description?: string
+  volume?: string
 }
 
 export default function BarcodePage() {
@@ -149,10 +153,37 @@ export default function BarcodePage() {
 
   const fetchProductInfo = async (barcode: string): Promise<ProductInfo> => {
     try {
-      // PocketBase에서 제품 정보 조회
+      console.log('Fetching product info for barcode:', barcode)
+
+      // 1단계: 식약처 공공데이터 API 조회 (최우선)
+      console.log('Trying Food Safety API...')
+      const foodSafetyProduct = await getProductByBarcode(barcode)
+
+      if (foodSafetyProduct) {
+        console.log('Found in Food Safety API:', foodSafetyProduct.PRDLST_NM)
+
+        // 스캔 기록 저장 (인증된 사용자만)
+        try {
+          await scanHistoryApi.create({
+            product: '', // Food Safety API는 product ID 없음
+            barcode: barcode,
+            scan_type: 'barcode',
+            tts_played: true
+          })
+        } catch (err) {
+          console.log('Scan history not saved (user not authenticated)')
+        }
+
+        return convertToProductInfo(foodSafetyProduct)
+      }
+
+      // 2단계: PocketBase 내부 데이터베이스 조회 (fallback)
+      console.log('Trying PocketBase...')
       const product = await productsApi.getByBarcode(barcode)
 
       if (product) {
+        console.log('Found in PocketBase:', product.name)
+
         // 스캔 기록 저장 (인증된 사용자만)
         try {
           await scanHistoryApi.create({
@@ -182,18 +213,21 @@ export default function BarcodePage() {
               : Array.isArray(product.warnings)
               ? product.warnings
               : [])
-            : []
+            : [],
+          category: product.category,
+          description: product.description
         }
       }
 
-      // 제품을 찾지 못한 경우
+      // 3단계: 제품을 찾지 못한 경우
+      console.log('Product not found in any database')
       return {
         code: barcode,
         name: '알 수 없는 제품',
         manufacturer: '정보 없음',
         ingredients: ['이 바코드에 대한 제품 정보를 찾을 수 없습니다'],
         allergens: [],
-        warnings: ['제품 정보가 데이터베이스에 없습니다']
+        warnings: ['제품 정보가 식약처 및 내부 데이터베이스에 없습니다']
       }
     } catch (error) {
       console.error('fetchProductInfo error:', error)
