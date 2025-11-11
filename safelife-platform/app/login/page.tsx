@@ -28,6 +28,21 @@ export default function LoginPage() {
     }
   }
 
+  const handleTestLogin = async (testEmail: string, testPassword: string) => {
+    setError('')
+    setLoading(true)
+
+    try {
+      await auth.signIn(testEmail, testPassword)
+      router.push('/dashboard')
+    } catch (err: any) {
+      console.error('Login error:', err)
+      setError(err.message || '로그인에 실패했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
@@ -93,10 +108,26 @@ export default function LoginPage() {
 
         <div className="mt-6 pt-6 border-t border-gray-200">
           <div className="bg-blue-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-700 font-medium mb-2">테스트 계정</p>
-            <div className="space-y-1 text-xs text-gray-600">
-              <p>고령자: elderly1@test.com / password123</p>
-              <p>보호자: guardian1@test.com / password123</p>
+            <p className="text-sm text-gray-700 font-medium mb-3">테스트 계정으로 빠른 로그인</p>
+            <div className="space-y-2">
+              <button
+                onClick={() => handleTestLogin('elderly1@test.com', 'password123')}
+                disabled={loading}
+                className="w-full bg-green-600 text-white py-2.5 rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                👴 고령자 계정으로 로그인
+              </button>
+              <button
+                onClick={() => handleTestLogin('guardian1@test.com', 'password123')}
+                disabled={loading}
+                className="w-full bg-purple-600 text-white py-2.5 rounded-lg font-medium hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                👨‍👩‍👧 보호자 계정으로 로그인
+              </button>
+            </div>
+            <div className="mt-3 space-y-1 text-xs text-gray-500">
+              <p>고령자: elderly1@test.com</p>
+              <p>보호자: guardian1@test.com</p>
             </div>
           </div>
         </div>
