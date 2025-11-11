@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft,
@@ -13,8 +14,10 @@ import {
   ScanBarcode,
   Smartphone,
   Bell,
-  Activity
+  Activity,
+  LogOut
 } from 'lucide-react'
+import { auth, guardianNotificationsApi, type User } from '@/lib/pocketbase'
 
 interface ElderlyUser {
   id: string
@@ -42,6 +45,9 @@ interface ActivityStat {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
   const [elderlyUsers, setElderlyUsers] = useState<ElderlyUser[]>([
     {
       id: '1',
@@ -56,6 +62,24 @@ export default function DashboardPage() {
       lastActivity: new Date(Date.now() - 2 * 60 * 60000) // 2 hours ago
     }
   ])
+
+  // 인증 체크
+  useEffect(() => {
+    const currentUser = auth.getCurrentUser()
+
+    if (!currentUser) {
+      router.push('/login?redirect=/dashboard')
+      return
+    }
+
+    if (currentUser.role !== 'guardian') {
+      router.push('/')
+      return
+    }
+
+    setUser(currentUser)
+    setLoading(false)
+  }, [])
 
   const [alerts, setAlerts] = useState<Alert[]>([
     {
@@ -130,6 +154,22 @@ export default function DashboardPage() {
     return `${Math.floor(seconds / 86400)}일 전`
   }
 
+  const handleLogout = () => {
+    auth.logout()
+    router.push('/')
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">로딩 중...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100">
       {/* Header */}
@@ -140,14 +180,26 @@ export default function DashboardPage() {
               <ArrowLeft className="w-5 h-5 mr-2" />
               <span>홈으로</span>
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900">보호자 대시보드</h1>
-            <div className="relative">
-              <Bell className="w-6 h-6 text-gray-600" />
-              {unacknowledgedCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                  {unacknowledgedCount}
-                </span>
-              )}
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-gray-900">보호자 대시보드</h1>
+              <p className="text-sm text-gray-500">{user?.name}님 환영합니다</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <Bell className="w-6 h-6 text-gray-600" />
+                {unacknowledgedCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                    {unacknowledgedCount}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center text-gray-600 hover:text-gray-900"
+              >
+                <LogOut className="w-5 h-5 mr-1" />
+                <span className="text-sm">로그아웃</span>
+              </button>
             </div>
           </div>
         </div>

@@ -6,6 +6,7 @@ import Webcam from 'react-webcam'
 import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/library'
 import { ArrowLeft, Camera, Volume2, AlertTriangle, Info } from 'lucide-react'
 import { speak, stopSpeaking } from '@/lib/utils'
+import { productsApi, scanHistoryApi, type Product } from '@/lib/pocketbase'
 
 interface ProductInfo {
   code: string
@@ -147,36 +148,65 @@ export default function BarcodePage() {
   }
 
   const fetchProductInfo = async (barcode: string): Promise<ProductInfo> => {
-    // Mock data - In production, this would call a real API (식약처 DB)
-    await new Promise(resolve => setTimeout(resolve, 500))
+    try {
+      // PocketBase에서 제품 정보 조회
+      const product = await productsApi.getByBarcode(barcode)
 
-    // Sample product database
-    const products: Record<string, ProductInfo> = {
-      '8801062638406': {
-        code: barcode,
-        name: '오리온 초코파이',
-        manufacturer: '오리온',
-        ingredients: ['밀가루', '설탕', '식물성유지', '계란', '코코아', '우유'],
-        allergens: ['밀', '계란', '우유', '대두'],
-        warnings: ['고열량 식품', '당류 함량 높음']
-      },
-      '8801043018272': {
-        code: barcode,
-        name: '농심 신라면',
-        manufacturer: '농심',
-        ingredients: ['면', '스프', '건더기', '밀가루', '식용유', '전분'],
-        allergens: ['밀', '대두', '쇠고기'],
-        warnings: ['나트륨 함량 높음', '매운맛']
+      if (product) {
+        // 스캔 기록 저장 (인증된 사용자만)
+        try {
+          await scanHistoryApi.create({
+            product: product.id,
+            barcode: barcode,
+            scan_type: 'barcode',
+            tts_played: true
+          })
+        } catch (err) {
+          console.log('Scan history not saved (user not authenticated)')
+        }
+
+        // Product를 ProductInfo로 변환
+        return {
+          code: product.barcode,
+          name: product.name,
+          manufacturer: product.brand || '정보 없음',
+          ingredients: Array.isArray(product.ingredients)
+            ? product.ingredients
+            : (typeof product.ingredients === 'string'
+              ? product.ingredients.split(',').map(i => i.trim())
+              : []),
+          allergens: product.allergens || [],
+          warnings: product.warnings
+            ? (typeof product.warnings === 'string'
+              ? product.warnings.split(',').map(w => w.trim())
+              : Array.isArray(product.warnings)
+              ? product.warnings
+              : [])
+            : []
+        }
       }
-    }
 
-    return products[barcode] || {
-      code: barcode,
-      name: '알 수 없는 제품',
-      manufacturer: '정보 없음',
-      ingredients: ['정보를 찾을 수 없습니다'],
-      allergens: [],
-      warnings: []
+      // 제품을 찾지 못한 경우
+      return {
+        code: barcode,
+        name: '알 수 없는 제품',
+        manufacturer: '정보 없음',
+        ingredients: ['이 바코드에 대한 제품 정보를 찾을 수 없습니다'],
+        allergens: [],
+        warnings: ['제품 정보가 데이터베이스에 없습니다']
+      }
+    } catch (error) {
+      console.error('fetchProductInfo error:', error)
+
+      // 에러 발생 시 fallback
+      return {
+        code: barcode,
+        name: '오류 발생',
+        manufacturer: '정보 없음',
+        ingredients: ['제품 정보를 불러오는 중 오류가 발생했습니다'],
+        allergens: [],
+        warnings: ['네트워크 연결을 확인해주세요']
+      }
     }
   }
 

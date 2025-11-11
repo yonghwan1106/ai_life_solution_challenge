@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Shield, Smartphone, ScanBarcode, Eye, Info, Sparkles, Heart, Zap, LogIn, UserCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import pb from '@/lib/pocketbase'
+import { auth } from '@/lib/pocketbase'
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -11,14 +11,14 @@ export default function Home() {
 
   useEffect(() => {
     const checkAuth = () => {
-      setIsLoggedIn(pb.authStore.isValid)
-      if (pb.authStore.model) {
-        setUserName(pb.authStore.model.email || '')
+      setIsLoggedIn(auth.isAuthenticated())
+      const user = auth.getCurrentUser()
+      if (user) {
+        setUserName(user.name || user.email || '')
       }
     }
 
     checkAuth()
-    pb.authStore.onChange(checkAuth)
   }, [])
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -62,7 +62,7 @@ export default function Home() {
                   </div>
                   <button
                     onClick={() => {
-                      pb.authStore.clear()
+                      auth.logout()
                       setIsLoggedIn(false)
                       setUserName('')
                     }}
