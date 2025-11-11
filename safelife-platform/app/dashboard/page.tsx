@@ -17,7 +17,7 @@ import {
   Activity,
   LogOut
 } from 'lucide-react'
-import { auth, guardianNotificationsApi, type User } from '@/lib/pocketbase'
+import { auth, type User } from '@/lib/pocketbase'
 
 interface ElderlyUser {
   id: string
