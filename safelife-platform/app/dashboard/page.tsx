@@ -64,7 +64,7 @@ export default function DashboardPage() {
       name: '아버지 (김철수)',
       status: 'warning',
       lastActivity: new Date(Date.now() - 2 * 60 * 60000), // 2 hours ago
-      photo: 'https://images.unsplash.com/photo-1595481773127-f48a13d5be6a?w=200&h=200&fit=crop&q=80' // Asian elderly man
+      photo: 'https://images.unsplash.com/photo-1582233479366-6d38bc390a08?w=200&h=200&fit=crop&q=80' // Asian elderly man portrait
     }
   ])
 
