@@ -57,14 +57,14 @@ export default function DashboardPage() {
       name: '어머니 (김순자)',
       status: 'safe',
       lastActivity: new Date(Date.now() - 30 * 60000), // 30 minutes ago
-      photo: 'https://images.unsplash.com/photo-1503235930437-8c6293ba41f5?w=200&h=200&fit=crop&q=80'
+      photo: 'https://images.unsplash.com/photo-1609220136736-443140cffec6?w=200&h=200&fit=crop&q=80' // Asian elderly woman smiling
     },
     {
       id: '2',
       name: '아버지 (김철수)',
       status: 'warning',
       lastActivity: new Date(Date.now() - 2 * 60 * 60000), // 2 hours ago
-      photo: 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=200&h=200&fit=crop&q=80'
+      photo: 'https://images.unsplash.com/photo-1595481773127-f48a13d5be6a?w=200&h=200&fit=crop&q=80' // Asian elderly man
     }
   ])
 
@@ -334,7 +334,7 @@ export default function DashboardPage() {
             <div className="flex items-center space-x-5">
               <div className="relative">
                 <img
-                  src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop&q=80"
+                  src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=200&h=200&fit=crop&q=80"
                   alt="보호자 프로필"
                   className="w-20 h-20 rounded-2xl object-cover border-4 border-white shadow-lg transform hover:scale-110 hover:rotate-6 transition-all duration-500"
                 />
