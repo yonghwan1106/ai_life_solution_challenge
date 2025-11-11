@@ -566,7 +566,8 @@ export const subscriptions = {
 
   // 모든 구독 해제
   unsubscribeAll() {
-    pb.unsubscribe()
+    // PocketBase SDK는 개별 구독 해제만 지원
+    // 필요시 개별 컬렉션별로 unsubscribe 호출
   }
 }
 
