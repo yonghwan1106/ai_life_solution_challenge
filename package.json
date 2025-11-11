@@ -1,0 +1,26 @@
+{
+  "name": "ai_life_solution_challenge",
+  "version": "1.0.0",
+  "description": "![SafeLife](https://img.shields.io/badge/AI-Life_Solution-blue) ![Next.js](https://img.shields.io/badge/Next.js-15-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue) ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-38bdf8)",
+  "main": "check_pocketbase.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yonghwan1106/ai_life_solution_challenge.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yonghwan1106/ai_life_solution_challenge/issues"
+  },
+  "homepage": "https://github.com/yonghwan1106/ai_life_solution_challenge#readme",
+  "dependencies": {
+    "pocketbase": "^0.26.3"
+  }
+}

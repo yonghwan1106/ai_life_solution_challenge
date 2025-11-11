@@ -570,4 +570,5 @@ export const subscriptions = {
   }
 }
 
+export { pb }
 export default pb

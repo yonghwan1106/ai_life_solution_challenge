@@ -1,7 +1,25 @@
+'use client'
+
 import Link from 'next/link'
-import { Shield, Smartphone, ScanBarcode, Eye, Info, Sparkles, Heart, Zap } from 'lucide-react'
+import { Shield, Smartphone, ScanBarcode, Eye, Info, Sparkles, Heart, Zap, LogIn, UserCircle } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import pb from '@/lib/pocketbase'
 
 export default function Home() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userName, setUserName] = useState('')
+
+  useEffect(() => {
+    const checkAuth = () => {
+      setIsLoggedIn(pb.authStore.isValid)
+      if (pb.authStore.model) {
+        setUserName(pb.authStore.model.email || '')
+      }
+    }
+
+    checkAuth()
+    pb.authStore.onChange(checkAuth)
+  }, [])
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Animated Background */}
@@ -35,6 +53,34 @@ export default function Home() {
                 <Heart className="w-4 h-4 inline text-red-500 mr-1" />
                 고령자를 위한 AI 생활 안전 플랫폼
               </p>
+
+              {isLoggedIn ? (
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2 bg-green-50 px-4 py-2 rounded-full">
+                    <UserCircle className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium text-green-700">{userName}</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      pb.authStore.clear()
+                      setIsLoggedIn(false)
+                      setUserName('')
+                    }}
+                    className="text-sm text-gray-600 hover:text-gray-900 font-medium"
+                  >
+                    로그아웃
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="flex items-center space-x-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-5 py-2.5 rounded-full hover:shadow-lg transition-all duration-300 font-medium text-sm group"
+                >
+                  <LogIn className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <span>로그인</span>
+                </Link>
+              )}
+
               <Link
                 href="/about"
                 className="flex items-center space-x-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2.5 rounded-full hover:shadow-lg transition-all duration-300 font-medium text-sm group"
