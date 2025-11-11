@@ -34,6 +34,40 @@ export default function BarcodePage() {
   const startScanning = async () => {
     try {
       setError(null)
+
+      // Check if running on HTTPS or localhost
+      if (typeof window !== 'undefined' && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        setError('보안을 위해 HTTPS 연결이 필요합니다.')
+        speak('보안을 위해 안전한 연결이 필요합니다.')
+        return
+      }
+
+      // Request camera permission first
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
+        })
+        // Stop the stream immediately, we just wanted to get permission
+        stream.getTracks().forEach(track => track.stop())
+      } catch (permErr: any) {
+        console.error('Camera permission error:', permErr)
+        let errorMessage = '카메라 권한이 필요합니다. '
+
+        if (permErr.name === 'NotAllowedError') {
+          errorMessage += '브라우저 설정에서 카메라 권한을 허용해주세요.'
+        } else if (permErr.name === 'NotFoundError') {
+          errorMessage += '카메라를 찾을 수 없습니다.'
+        } else if (permErr.name === 'NotReadableError') {
+          errorMessage += '카메라가 다른 앱에서 사용 중입니다.'
+        } else {
+          errorMessage += '카메라에 접근할 수 없습니다.'
+        }
+
+        setError(errorMessage)
+        speak(errorMessage)
+        return
+      }
+
       const html5QrCode = new Html5Qrcode(readerDivId)
       scannerRef.current = html5QrCode
 
@@ -49,10 +83,20 @@ export default function BarcodePage() {
 
       setScanning(true)
       speak('바코드 스캔을 시작합니다. 제품의 바코드를 카메라에 비춰주세요.')
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error starting scanner:', err)
-      setError('카메라를 시작할 수 없습니다. 권한을 확인해주세요.')
-      speak('카메라를 시작할 수 없습니다. 권한을 확인해주세요.')
+      let errorMessage = '카메라를 시작할 수 없습니다. '
+
+      if (err.name === 'NotAllowedError') {
+        errorMessage = '카메라 권한이 거부되었습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.'
+      } else if (err.name === 'NotFoundError') {
+        errorMessage = '카메라를 찾을 수 없습니다. 기기에 카메라가 있는지 확인해주세요.'
+      } else if (err.name === 'NotReadableError') {
+        errorMessage = '카메라가 다른 앱에서 사용 중입니다. 다른 앱을 종료하고 다시 시도해주세요.'
+      }
+
+      setError(errorMessage)
+      speak(errorMessage)
     }
   }
 
@@ -170,9 +214,18 @@ export default function BarcodePage() {
               <h3 className="text-lg font-semibold text-blue-900 mb-2">사용 방법</h3>
               <ol className="list-decimal list-inside text-blue-800 space-y-1">
                 <li className="text-base">아래 스캔 시작 버튼을 눌러주세요</li>
+                <li className="text-base">카메라 권한 요청이 나타나면 <strong className="text-blue-900">"허용"</strong>을 선택해주세요</li>
                 <li className="text-base">제품 바코드를 카메라에 비춰주세요</li>
                 <li className="text-base">제품 정보를 음성으로 안내해드립니다</li>
               </ol>
+              <div className="mt-3 p-3 bg-blue-100 rounded text-sm text-blue-900">
+                <p className="font-semibold mb-1">💡 카메라 권한이 차단된 경우:</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>주소창 옆의 자물쇠 아이콘을 클릭하세요</li>
+                  <li>카메라 권한을 "허용"으로 변경하세요</li>
+                  <li>페이지를 새로고침 하세요</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
