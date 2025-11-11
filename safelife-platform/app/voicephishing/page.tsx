@@ -2,15 +2,20 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Mic, MicOff, AlertTriangle, Shield, Phone, Info, Bell } from 'lucide-react'
-import { speak, detectVoicePhishingPatterns } from '@/lib/utils'
+import { ArrowLeft, Mic, MicOff, AlertTriangle, Shield, Phone, Info, Bell, Brain } from 'lucide-react'
+import { speak } from '@/lib/utils'
+import { analyzeVoicePhishingWithGPT4 } from '@/lib/openai-service'
 
 interface CallAnalysis {
   timestamp: Date
   transcription: string
   riskLevel: 'low' | 'medium' | 'high'
+  confidence: number
   detectedPatterns: string[]
   recommendation: string
+  reasoning: string
+  suspiciousKeywords: string[]
+  isAIAnalyzed: boolean
 }
 
 export default function VoicePhishingPage() {
@@ -19,6 +24,8 @@ export default function VoicePhishingPage() {
   const [currentAnalysis, setCurrentAnalysis] = useState<CallAnalysis | null>(null)
   const [callHistory, setCallHistory] = useState<CallAnalysis[]>([])
   const [guardianNotified, setGuardianNotified] = useState(false)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [conversationHistory, setConversationHistory] = useState<string[]>([])
   const recognitionRef = useRef<any>(null)
 
   useEffect(() => {
@@ -87,41 +94,51 @@ export default function VoicePhishingPage() {
     }
   }
 
-  const analyzeTranscript = (text: string) => {
-    const analysis = detectVoicePhishingPatterns(text)
+  const analyzeTranscript = async (text: string) => {
+    // 대화 히스토리에 추가
+    setConversationHistory(prev => [...prev, text])
+    setIsAnalyzing(true)
 
-    if (analysis.isRisky) {
-      const callAnalysis: CallAnalysis = {
-        timestamp: new Date(),
-        transcription: text,
-        riskLevel: analysis.riskLevel,
-        detectedPatterns: analysis.detectedPatterns,
-        recommendation: getRecommendation(analysis.riskLevel)
+    try {
+      // GPT-4로 고급 분석
+      const analysis = await analyzeVoicePhishingWithGPT4(text, {
+        previousTranscripts: conversationHistory
+      })
+
+      if (analysis.isRisky) {
+        const callAnalysis: CallAnalysis = {
+          timestamp: new Date(),
+          transcription: text,
+          riskLevel: analysis.riskLevel,
+          confidence: analysis.confidence,
+          detectedPatterns: analysis.detectedPatterns,
+          recommendation: analysis.recommendation,
+          reasoning: analysis.reasoning,
+          suspiciousKeywords: analysis.suspiciousKeywords,
+          isAIAnalyzed: true
+        }
+
+        setCurrentAnalysis(callAnalysis)
+        setCallHistory(prev => [callAnalysis, ...prev].slice(0, 10))
+
+        // Alert user based on risk level and confidence
+        if (analysis.riskLevel === 'high' && analysis.confidence > 70) {
+          speak('위험! AI가 보이스피싱을 감지했습니다. 절대 개인정보를 제공하지 마세요. 전화를 끊으세요.')
+          notifyGuardian(callAnalysis)
+        } else if (analysis.riskLevel === 'high') {
+          speak('보이스피싱 가능성이 높습니다. 매우 주의하세요.')
+          notifyGuardian(callAnalysis)
+        } else if (analysis.riskLevel === 'medium') {
+          speak('주의하세요. AI가 의심스러운 내용을 감지했습니다.')
+        } else if (analysis.riskLevel === 'low') {
+          speak('주의가 필요한 단어가 감지되었습니다.')
+        }
       }
-
-      setCurrentAnalysis(callAnalysis)
-      setCallHistory(prev => [callAnalysis, ...prev].slice(0, 10))
-
-      // Alert user based on risk level
-      if (analysis.riskLevel === 'high') {
-        speak('위험! 보이스피싱이 의심됩니다. 절대 개인정보를 제공하지 마세요. 전화를 끊으세요.')
-        notifyGuardian(callAnalysis)
-      } else if (analysis.riskLevel === 'medium') {
-        speak('주의하세요. 의심스러운 내용이 감지되었습니다.')
-      }
-    }
-  }
-
-  const getRecommendation = (riskLevel: 'low' | 'medium' | 'high'): string => {
-    switch (riskLevel) {
-      case 'high':
-        return '즉시 전화를 끊고 112에 신고하세요. 절대 개인정보나 금융정보를 제공하지 마세요.'
-      case 'medium':
-        return '신중하게 대응하세요. 의심스러운 경우 전화를 끊고 공식 번호로 재확인하세요.'
-      case 'low':
-        return '주의가 필요한 단어가 감지되었습니다. 계속 주의하며 대화하세요.'
-      default:
-        return '안전한 대화를 이어가세요.'
+    } catch (error) {
+      console.error('Analysis error:', error)
+      speak('분석 중 오류가 발생했습니다. 계속 주의하세요.')
+    } finally {
+      setIsAnalyzing(false)
     }
   }
 
@@ -209,6 +226,12 @@ export default function VoicePhishingPage() {
                     <div className="absolute inset-0 w-32 h-32 bg-red-500 rounded-full animate-ping opacity-20"></div>
                   </div>
                   <p className="text-white text-lg font-medium">통화 내용 실시간 분석 중...</p>
+                  {isAnalyzing && (
+                    <div className="mt-3 flex items-center space-x-2 text-yellow-300">
+                      <Brain className="w-5 h-5 animate-pulse" />
+                      <span className="text-sm">GPT-4 AI 분석 중...</span>
+                    </div>
+                  )}
                 </>
               ) : (
                 <>
@@ -316,10 +339,27 @@ export default function VoicePhishingPage() {
                   </div>
                 </div>
 
+                {/* AI Analysis Info */}
+                {currentAnalysis.isAIAnalyzed && (
+                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-4 border border-purple-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        <Brain className="w-5 h-5 text-purple-600" />
+                        <h4 className="font-semibold text-purple-900">GPT-4 AI 분석</h4>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-purple-700">신뢰도:</span>
+                        <span className="font-bold text-purple-900">{currentAnalysis.confidence}%</span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-purple-800 leading-relaxed">{currentAnalysis.reasoning}</p>
+                  </div>
+                )}
+
                 {/* Detected Patterns */}
                 {currentAnalysis.detectedPatterns.length > 0 && (
                   <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="font-semibold text-gray-900 mb-3">감지된 위험 키워드</h4>
+                    <h4 className="font-semibold text-gray-900 mb-3">감지된 위험 패턴</h4>
                     <div className="flex flex-wrap gap-2">
                       {currentAnalysis.detectedPatterns.map((pattern, idx) => (
                         <span
@@ -327,6 +367,23 @@ export default function VoicePhishingPage() {
                           className="bg-red-200 text-red-900 px-3 py-1 rounded-full text-sm font-medium"
                         >
                           {pattern}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Suspicious Keywords */}
+                {currentAnalysis.suspiciousKeywords && currentAnalysis.suspiciousKeywords.length > 0 && (
+                  <div className="bg-orange-50 rounded-lg p-4">
+                    <h4 className="font-semibold text-orange-900 mb-3">의심 키워드</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {currentAnalysis.suspiciousKeywords.map((keyword, idx) => (
+                        <span
+                          key={idx}
+                          className="bg-orange-200 text-orange-900 px-3 py-1 rounded-full text-sm font-medium"
+                        >
+                          {keyword}
                         </span>
                       ))}
                     </div>
