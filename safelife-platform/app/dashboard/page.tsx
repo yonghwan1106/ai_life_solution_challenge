@@ -50,6 +50,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showNotifications, setShowNotifications] = useState(false)
   const [elderlyUsers, setElderlyUsers] = useState<ElderlyUser[]>([
     {
       id: '1',
@@ -84,6 +85,24 @@ export default function DashboardPage() {
     setUser(currentUser)
     setLoading(false)
   }, [])
+
+  // 알림 패널 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (showNotifications && !target.closest('.notification-panel')) {
+        setShowNotifications(false)
+      }
+    }
+
+    if (showNotifications) {
+      document.addEventListener('click', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showNotifications])
 
   const [alerts, setAlerts] = useState<Alert[]>([
     {
@@ -202,12 +221,104 @@ export default function DashboardPage() {
                 <span className="text-sm font-medium">← 홈으로</span>
               </Link>
               <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <Bell className="w-6 h-6 text-gray-600 hover:text-gray-900 cursor-pointer transition-colors" />
-                  {unacknowledgedCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                      {unacknowledgedCount}
-                    </span>
+                <div className="relative notification-panel">
+                  <button
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <Bell className="w-6 h-6 text-gray-600 hover:text-gray-900 cursor-pointer transition-colors" />
+                    {unacknowledgedCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold animate-pulse">
+                        {unacknowledgedCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Notifications Dropdown */}
+                  {showNotifications && (
+                    <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-fade-in">
+                      <div className="bg-gradient-to-r from-purple-400 to-indigo-500 px-6 py-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-white font-bold text-lg">알림</h3>
+                          <span className="bg-white/20 text-white text-xs px-3 py-1 rounded-full">
+                            {unacknowledgedCount}개의 새 알림
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="max-h-96 overflow-y-auto">
+                        {alerts.length > 0 ? (
+                          alerts.slice(0, 5).map(alert => (
+                            <div
+                              key={alert.id}
+                              className={`px-6 py-4 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                                !alert.acknowledged ? 'bg-blue-50' : ''
+                              }`}
+                            >
+                              <div className="flex items-start space-x-3">
+                                <div
+                                  className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                                    alert.severity === 'high'
+                                      ? 'bg-red-100'
+                                      : alert.severity === 'medium'
+                                      ? 'bg-yellow-100'
+                                      : 'bg-blue-100'
+                                  }`}
+                                >
+                                  {alert.type === 'voice_phishing' ? (
+                                    <Shield
+                                      className={`w-5 h-5 ${
+                                        alert.severity === 'high'
+                                          ? 'text-red-600'
+                                          : alert.severity === 'medium'
+                                          ? 'text-yellow-600'
+                                          : 'text-blue-600'
+                                      }`}
+                                    />
+                                  ) : alert.type === 'emergency' ? (
+                                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                                  ) : (
+                                    <Activity className="w-5 h-5 text-blue-600" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <p className="text-sm font-semibold text-gray-900">
+                                      {alert.elderlyName}
+                                    </p>
+                                    <span className="text-xs text-gray-500">
+                                      {getTimeSince(alert.timestamp)}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-gray-700 mb-2">{alert.message}</p>
+                                  {!alert.acknowledged && (
+                                    <button
+                                      onClick={() => acknowledgeAlert(alert.id)}
+                                      className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                                    >
+                                      확인 완료
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-6 py-8 text-center text-gray-500">
+                            <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                            <p>새로운 알림이 없습니다</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {alerts.length > 5 && (
+                        <div className="px-6 py-3 bg-gray-50 text-center">
+                          <button className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                            모든 알림 보기 ({alerts.length}개)
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
                 <button
