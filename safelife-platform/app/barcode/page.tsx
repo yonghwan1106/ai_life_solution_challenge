@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Webcam from 'react-webcam'
-import { BrowserMultiFormatReader } from '@zxing/library'
+import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/library'
 import { ArrowLeft, Camera, Volume2, AlertTriangle, Info } from 'lucide-react'
 import { speak, stopSpeaking } from '@/lib/utils'
 
@@ -21,6 +21,7 @@ export default function BarcodePage() {
   const [productInfo, setProductInfo] = useState<ProductInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [scanAttempts, setScanAttempts] = useState(0)
   const webcamRef = useRef<Webcam>(null)
   const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null)
   const scanningIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -35,18 +36,33 @@ export default function BarcodePage() {
 
   const startScanning = () => {
     setError(null)
+    setScanAttempts(0)
     setScanning(true)
     speak('바코드 스캔을 시작합니다. 제품의 바코드를 카메라에 비춰주세요.')
 
-    // Initialize code reader
+    // Initialize code reader with hints
     if (!codeReaderRef.current) {
-      codeReaderRef.current = new BrowserMultiFormatReader()
+      const hints = new Map()
+      const formats = [
+        // Common barcode formats
+        BarcodeFormat.EAN_13,
+        BarcodeFormat.EAN_8,
+        BarcodeFormat.UPC_A,
+        BarcodeFormat.UPC_E,
+        BarcodeFormat.CODE_128,
+        BarcodeFormat.CODE_39,
+        BarcodeFormat.QR_CODE
+      ]
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, formats)
+      hints.set(DecodeHintType.TRY_HARDER, true)
+
+      codeReaderRef.current = new BrowserMultiFormatReader(hints)
     }
 
-    // Start continuous scanning
+    // Start continuous scanning more frequently
     scanningIntervalRef.current = setInterval(() => {
       captureAndDecode()
-    }, 500) // Try to decode every 500ms
+    }, 300) // Try to decode every 300ms for better responsiveness
   }
 
   const stopScanning = () => {
@@ -66,8 +82,14 @@ export default function BarcodePage() {
     if (!webcamRef.current || !codeReaderRef.current) return
 
     try {
-      const imageSrc = webcamRef.current.getScreenshot()
+      // Get higher quality screenshot
+      const imageSrc = webcamRef.current.getScreenshot({
+        width: 1920,
+        height: 1080
+      })
       if (!imageSrc) return
+
+      setScanAttempts(prev => prev + 1)
 
       // Convert base64 to image element
       const img = document.createElement('img')
@@ -86,6 +108,7 @@ export default function BarcodePage() {
       }
     } catch (err) {
       // No barcode found in this frame, continue scanning
+      // This is expected and normal
     }
   }
 
@@ -246,7 +269,21 @@ export default function BarcodePage() {
                      style={{ width: '250px', height: '250px' }}></div>
               </div>
               <div className="text-center mt-4">
-                <p className="text-gray-600 mb-4">바코드를 녹색 사각형 안에 맞춰주세요</p>
+                <div className="mb-4">
+                  <p className="text-gray-600 mb-2 font-semibold">바코드를 녹색 사각형 안에 맞춰주세요</p>
+                  <p className="text-sm text-gray-500">스캔 시도 중: {scanAttempts}회</p>
+                  {scanAttempts > 10 && (
+                    <div className="mt-3 p-3 bg-yellow-50 rounded-lg text-sm text-yellow-800">
+                      <p className="font-semibold mb-1">💡 바코드 인식이 어려운가요?</p>
+                      <ul className="list-disc list-inside text-left space-y-1 ml-2">
+                        <li>바코드에 충분한 조명을 비춰주세요</li>
+                        <li>바코드를 카메라에 더 가까이 대주세요</li>
+                        <li>바코드가 선명하게 보이도록 초점을 맞춰주세요</li>
+                        <li>바코드를 수평으로 맞춰주세요</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={stopScanning}
                   className="bg-red-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-red-700 transition-colors"
