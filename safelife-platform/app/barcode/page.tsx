@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { Html5Qrcode } from 'html5-qrcode'
+import Webcam from 'react-webcam'
+import { BrowserMultiFormatReader } from '@zxing/library'
 import { ArrowLeft, Camera, Volume2, AlertTriangle, Info } from 'lucide-react'
 import { speak, stopSpeaking } from '@/lib/utils'
 
@@ -20,8 +21,9 @@ export default function BarcodePage() {
   const [productInfo, setProductInfo] = useState<ProductInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSpeaking, setIsSpeaking] = useState(false)
-  const scannerRef = useRef<Html5Qrcode | null>(null)
-  const readerDivId = 'barcode-reader'
+  const webcamRef = useRef<Webcam>(null)
+  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null)
+  const scanningIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     // Cleanup on unmount
@@ -31,91 +33,64 @@ export default function BarcodePage() {
     }
   }, [])
 
-  const startScanning = async () => {
-    try {
-      setError(null)
+  const startScanning = () => {
+    setError(null)
+    setScanning(true)
+    speak('바코드 스캔을 시작합니다. 제품의 바코드를 카메라에 비춰주세요.')
 
-      // Check if running on HTTPS or localhost
-      if (typeof window !== 'undefined' && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-        setError('보안을 위해 HTTPS 연결이 필요합니다.')
-        speak('보안을 위해 안전한 연결이 필요합니다.')
-        return
-      }
-
-      // Request camera permission first
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }
-        })
-        // Stop the stream immediately, we just wanted to get permission
-        stream.getTracks().forEach(track => track.stop())
-      } catch (permErr: any) {
-        console.error('Camera permission error:', permErr)
-        let errorMessage = '카메라 권한이 필요합니다. '
-
-        if (permErr.name === 'NotAllowedError') {
-          errorMessage += '브라우저 설정에서 카메라 권한을 허용해주세요.'
-        } else if (permErr.name === 'NotFoundError') {
-          errorMessage += '카메라를 찾을 수 없습니다.'
-        } else if (permErr.name === 'NotReadableError') {
-          errorMessage += '카메라가 다른 앱에서 사용 중입니다.'
-        } else {
-          errorMessage += '카메라에 접근할 수 없습니다.'
-        }
-
-        setError(errorMessage)
-        speak(errorMessage)
-        return
-      }
-
-      const html5QrCode = new Html5Qrcode(readerDivId)
-      scannerRef.current = html5QrCode
-
-      await html5QrCode.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-        },
-        onScanSuccess,
-        onScanFailure
-      )
-
-      setScanning(true)
-      speak('바코드 스캔을 시작합니다. 제품의 바코드를 카메라에 비춰주세요.')
-    } catch (err: any) {
-      console.error('Error starting scanner:', err)
-      let errorMessage = '카메라를 시작할 수 없습니다. '
-
-      if (err.name === 'NotAllowedError') {
-        errorMessage = '카메라 권한이 거부되었습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.'
-      } else if (err.name === 'NotFoundError') {
-        errorMessage = '카메라를 찾을 수 없습니다. 기기에 카메라가 있는지 확인해주세요.'
-      } else if (err.name === 'NotReadableError') {
-        errorMessage = '카메라가 다른 앱에서 사용 중입니다. 다른 앱을 종료하고 다시 시도해주세요.'
-      }
-
-      setError(errorMessage)
-      speak(errorMessage)
+    // Initialize code reader
+    if (!codeReaderRef.current) {
+      codeReaderRef.current = new BrowserMultiFormatReader()
     }
+
+    // Start continuous scanning
+    scanningIntervalRef.current = setInterval(() => {
+      captureAndDecode()
+    }, 500) // Try to decode every 500ms
   }
 
-  const stopScanning = async () => {
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop()
-        scannerRef.current.clear()
-        scannerRef.current = null
-      } catch (err) {
-        console.error('Error stopping scanner:', err)
-      }
+  const stopScanning = () => {
+    if (scanningIntervalRef.current) {
+      clearInterval(scanningIntervalRef.current)
+      scanningIntervalRef.current = null
     }
+
+    if (codeReaderRef.current) {
+      codeReaderRef.current.reset()
+    }
+
     setScanning(false)
   }
 
+  const captureAndDecode = async () => {
+    if (!webcamRef.current || !codeReaderRef.current) return
+
+    try {
+      const imageSrc = webcamRef.current.getScreenshot()
+      if (!imageSrc) return
+
+      // Convert base64 to image element
+      const img = document.createElement('img')
+      img.src = imageSrc
+
+      await new Promise((resolve) => {
+        img.onload = resolve
+      })
+
+      // Decode barcode from image
+      const result = await codeReaderRef.current.decodeFromImageElement(img)
+
+      if (result) {
+        console.log('Barcode detected:', result.getText())
+        await onScanSuccess(result.getText())
+      }
+    } catch (err) {
+      // No barcode found in this frame, continue scanning
+    }
+  }
+
   const onScanSuccess = async (decodedText: string) => {
-    console.log('Barcode detected:', decodedText)
-    await stopScanning()
+    stopScanning()
 
     // Fetch product info (mock data for demo)
     const info = await fetchProductInfo(decodedText)
@@ -125,8 +100,27 @@ export default function BarcodePage() {
     speakProductInfo(info)
   }
 
-  const onScanFailure = (error: any) => {
-    // Ignore scan failures (normal when no barcode in view)
+  const handleUserMedia = (stream: MediaStream) => {
+    console.log('Camera stream started successfully')
+  }
+
+  const handleUserMediaError = (error: any) => {
+    console.error('Camera error:', error)
+    let errorMessage = '카메라를 시작할 수 없습니다. '
+
+    if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+      errorMessage = '카메라 권한이 필요합니다. 브라우저 설정에서 카메라 권한을 허용해주세요.'
+    } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+      errorMessage = '카메라를 찾을 수 없습니다. 기기에 카메라가 있는지 확인해주세요.'
+    } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+      errorMessage = '카메라가 다른 앱에서 사용 중입니다. 다른 앱을 종료하고 다시 시도해주세요.'
+    } else if (error.name === 'OverconstrainedError' || error.name === 'ConstraintNotSatisfiedError') {
+      errorMessage = '카메라 설정을 조정할 수 없습니다.'
+    }
+
+    setError(errorMessage)
+    speak(errorMessage)
+    setScanning(false)
   }
 
   const fetchProductInfo = async (barcode: string): Promise<ProductInfo> => {
@@ -232,9 +226,36 @@ export default function BarcodePage() {
 
         {/* Scanner Area */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <div id={readerDivId} className={`${scanning ? 'block' : 'hidden'} w-full max-w-md mx-auto`}></div>
-
-          {!scanning && !productInfo && (
+          {scanning ? (
+            <div className="relative">
+              <Webcam
+                ref={webcamRef}
+                audio={false}
+                screenshotFormat="image/jpeg"
+                videoConstraints={{
+                  facingMode: 'environment',
+                  width: { ideal: 1280 },
+                  height: { ideal: 720 }
+                }}
+                onUserMedia={handleUserMedia}
+                onUserMediaError={handleUserMediaError}
+                className="w-full max-w-2xl mx-auto rounded-lg"
+              />
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="border-4 border-green-500 rounded-lg"
+                     style={{ width: '250px', height: '250px' }}></div>
+              </div>
+              <div className="text-center mt-4">
+                <p className="text-gray-600 mb-4">바코드를 녹색 사각형 안에 맞춰주세요</p>
+                <button
+                  onClick={stopScanning}
+                  className="bg-red-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-red-700 transition-colors"
+                >
+                  스캔 중지
+                </button>
+              </div>
+            </div>
+          ) : !productInfo ? (
             <div className="text-center py-12">
               <Camera className="w-24 h-24 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 mb-6 text-lg">바코드 스캔을 시작하려면 버튼을 눌러주세요</p>
@@ -246,18 +267,7 @@ export default function BarcodePage() {
                 스캔 시작하기
               </button>
             </div>
-          )}
-
-          {scanning && (
-            <div className="text-center mt-4">
-              <button
-                onClick={stopScanning}
-                className="bg-red-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-red-700 transition-colors"
-              >
-                스캔 중지
-              </button>
-            </div>
-          )}
+          ) : null}
         </div>
 
         {/* Product Information */}
