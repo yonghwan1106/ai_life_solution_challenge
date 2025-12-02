@@ -2,10 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { Mic, MicOff, AlertTriangle, Shield, Phone, Info, Bell, Brain } from 'lucide-react'
+import { Mic, MicOff, AlertTriangle, Shield, Phone, Info, Bell, Brain, Sparkles, Play, PhoneCall, User, Clock, ChevronRight } from 'lucide-react'
 import { speak } from '@/lib/utils'
 import { analyzeVoicePhishingWithGPT4 } from '@/lib/openai-service'
 import PageHeader from '@/components/PageHeader'
+import { MOCK_PHISHING_SCENARIOS, type PhishingScenario } from '@/lib/mock-data'
 
 interface CallAnalysis {
   timestamp: Date
@@ -28,6 +29,16 @@ export default function VoicePhishingPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [conversationHistory, setConversationHistory] = useState<string[]>([])
   const recognitionRef = useRef<any>(null)
+
+  // Demo mode states
+  const [isDemoMode, setIsDemoMode] = useState(false)
+  const [selectedScenario, setSelectedScenario] = useState<PhishingScenario | null>(null)
+  const [isTyping, setIsTyping] = useState(false)
+  const [displayedText, setDisplayedText] = useState('')
+  const [showScenarioSelector, setShowScenarioSelector] = useState(false)
+  const [callDuration, setCallDuration] = useState(0)
+  const typingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const durationIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     // Check if browser supports Speech Recognition
@@ -66,6 +77,7 @@ export default function VoicePhishingPage() {
 
     return () => {
       stopListening()
+      stopDemoMode()
     }
   }, [])
 
@@ -96,12 +108,10 @@ export default function VoicePhishingPage() {
   }
 
   const analyzeTranscript = async (text: string) => {
-    // 대화 히스토리에 추가
     setConversationHistory(prev => [...prev, text])
     setIsAnalyzing(true)
 
     try {
-      // GPT-4로 고급 분석
       const analysis = await analyzeVoicePhishingWithGPT4(text, {
         previousTranscripts: conversationHistory
       })
@@ -122,7 +132,6 @@ export default function VoicePhishingPage() {
         setCurrentAnalysis(callAnalysis)
         setCallHistory(prev => [callAnalysis, ...prev].slice(0, 10))
 
-        // Alert user based on risk level and confidence
         if (analysis.riskLevel === 'high' && analysis.confidence > 70) {
           speak('위험! AI가 보이스피싱을 감지했습니다. 절대 개인정보를 제공하지 마세요. 전화를 끊으세요.')
           notifyGuardian(callAnalysis)
@@ -145,29 +154,120 @@ export default function VoicePhishingPage() {
 
   const notifyGuardian = (analysis: CallAnalysis) => {
     setGuardianNotified(true)
-    // In production, this would send actual notification via SMS/push
     console.log('Guardian notified:', analysis)
   }
 
-  const simulatePhishingCall = () => {
-    const samples = [
-      {
-        text: '저는 금융감독원입니다. 귀하의 계좌에서 이상 거래가 감지되어 계좌번호 확인이 필요합니다.',
-        risk: 'high' as const
-      },
-      {
-        text: '대출 상담 도와드립니다. 저금리로 빠른 대출 가능합니다.',
-        risk: 'medium' as const
-      },
-      {
-        text: '긴급하게 현금이 필요하신가요? 지금 바로 도와드리겠습니다.',
-        risk: 'low' as const
-      }
-    ]
+  // Demo mode functions
+  const startDemoMode = (scenario: PhishingScenario) => {
+    stopListening()
+    setSelectedScenario(scenario)
+    setIsDemoMode(true)
+    setShowScenarioSelector(false)
+    setCurrentTranscript('')
+    setDisplayedText('')
+    setCurrentAnalysis(null)
+    setGuardianNotified(false)
+    setCallDuration(0)
 
-    const sample = samples[Math.floor(Math.random() * samples.length)]
-    setCurrentTranscript(sample.text)
-    analyzeTranscript(sample.text)
+    speak(`${scenario.typeName} 시나리오 데모를 시작합니다.`)
+
+    // Start call duration timer
+    durationIntervalRef.current = setInterval(() => {
+      setCallDuration(prev => prev + 1)
+    }, 1000)
+
+    // Start typing animation after a short delay
+    setTimeout(() => {
+      startTypingAnimation(scenario.transcript)
+    }, 2000)
+  }
+
+  const startTypingAnimation = (text: string) => {
+    setIsTyping(true)
+    let index = 0
+
+    typingIntervalRef.current = setInterval(() => {
+      if (index < text.length) {
+        setDisplayedText(text.slice(0, index + 1))
+        index++
+      } else {
+        // Typing complete, analyze
+        if (typingIntervalRef.current) {
+          clearInterval(typingIntervalRef.current)
+        }
+        setIsTyping(false)
+        setCurrentTranscript(text)
+        analyzeScenario()
+      }
+    }, 50) // 50ms per character
+  }
+
+  const analyzeScenario = () => {
+    if (!selectedScenario) return
+
+    setIsAnalyzing(true)
+
+    // Simulate analysis delay
+    setTimeout(() => {
+      const callAnalysis: CallAnalysis = {
+        timestamp: new Date(),
+        transcription: selectedScenario.transcript,
+        riskLevel: selectedScenario.riskLevel,
+        confidence: selectedScenario.riskLevel === 'high' ? 92 : selectedScenario.riskLevel === 'medium' ? 78 : 55,
+        detectedPatterns: selectedScenario.patterns,
+        recommendation: selectedScenario.recommendation,
+        reasoning: `이 통화는 "${selectedScenario.typeName}" 유형의 보이스피싱으로 판단됩니다. ${selectedScenario.patterns.join(', ')} 등의 특징이 감지되었습니다.`,
+        suspiciousKeywords: extractKeywords(selectedScenario.transcript),
+        isAIAnalyzed: true
+      }
+
+      setCurrentAnalysis(callAnalysis)
+      setCallHistory(prev => [callAnalysis, ...prev].slice(0, 10))
+      setIsAnalyzing(false)
+
+      // Voice alert
+      if (selectedScenario.riskLevel === 'high') {
+        speak('위험! 보이스피싱이 감지되었습니다. 즉시 전화를 끊으세요.')
+        setGuardianNotified(true)
+      } else if (selectedScenario.riskLevel === 'medium') {
+        speak('주의! 의심스러운 통화가 감지되었습니다.')
+      } else {
+        speak('주의가 필요한 통화입니다.')
+      }
+    }, 2000)
+  }
+
+  const extractKeywords = (text: string): string[] => {
+    const keywords = ['금융감독원', '검찰', '계좌번호', '송금', '비밀번호', '대출', '저금리', '긴급', '안전계좌', '환급', '압수수색']
+    return keywords.filter(k => text.includes(k))
+  }
+
+  const stopDemoMode = () => {
+    if (typingIntervalRef.current) {
+      clearInterval(typingIntervalRef.current)
+    }
+    if (durationIntervalRef.current) {
+      clearInterval(durationIntervalRef.current)
+    }
+    setIsDemoMode(false)
+    setSelectedScenario(null)
+    setIsTyping(false)
+    setDisplayedText('')
+    setCallDuration(0)
+  }
+
+  const formatDuration = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // Get risk meter position (0-100)
+  const getRiskMeterPosition = (): number => {
+    if (!currentAnalysis) return 0
+    if (currentAnalysis.riskLevel === 'low') return 20
+    if (currentAnalysis.riskLevel === 'medium') return 55
+    return 85
   }
 
   return (
@@ -209,71 +309,190 @@ export default function VoicePhishingPage() {
           </div>
         </div>
 
+        {/* Scenario Selector Modal */}
+        {showScenarioSelector && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">시나리오 선택</h2>
+              <p className="text-gray-600 mb-6">체험할 보이스피싱 시나리오를 선택하세요</p>
+
+              <div className="space-y-3">
+                {MOCK_PHISHING_SCENARIOS.map((scenario) => (
+                  <button
+                    key={scenario.id}
+                    onClick={() => startDemoMode(scenario)}
+                    className={`w-full p-4 rounded-xl border-2 text-left transition-all hover:shadow-lg ${
+                      scenario.riskLevel === 'high'
+                        ? 'border-red-200 hover:border-red-400 bg-red-50'
+                        : scenario.riskLevel === 'medium'
+                        ? 'border-yellow-200 hover:border-yellow-400 bg-yellow-50'
+                        : 'border-blue-200 hover:border-blue-400 bg-blue-50'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                            scenario.riskLevel === 'high'
+                              ? 'bg-red-200 text-red-800'
+                              : scenario.riskLevel === 'medium'
+                              ? 'bg-yellow-200 text-yellow-800'
+                              : 'bg-blue-200 text-blue-800'
+                          }`}>
+                            {scenario.riskLevel === 'high' ? '높은 위험' : scenario.riskLevel === 'medium' ? '중간 위험' : '낮은 위험'}
+                          </span>
+                          <span className="text-sm text-gray-500">{scenario.typeName}</span>
+                        </div>
+                        <h3 className="font-bold text-gray-900 mb-1">{scenario.title}</h3>
+                        <p className="text-sm text-gray-600 line-clamp-2">{scenario.transcript.slice(0, 80)}...</p>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 mt-1" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setShowScenarioSelector(false)}
+                className="mt-6 w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Monitoring Panel */}
           <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-8 overflow-hidden border border-red-100">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-400 to-pink-500"></div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900">통화 모니터링</h2>
-              {isListening && (
+              {(isListening || isDemoMode) && (
                 <div className="flex items-center space-x-2 bg-red-100 text-red-700 px-3 py-1 rounded-full animate-pulse">
                   <div className="w-2 h-2 bg-red-600 rounded-full"></div>
-                  <span className="text-sm font-medium">감지 중</span>
+                  <span className="text-sm font-medium">
+                    {isDemoMode ? '데모 진행 중' : '감지 중'}
+                  </span>
                 </div>
               )}
             </div>
 
-            {/* Microphone Status */}
-            <div className="bg-gray-900 rounded-lg p-8 mb-6 flex flex-col items-center justify-center">
-              {isListening ? (
-                <>
-                  <div className="relative mb-4">
-                    <div className="w-32 h-32 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
-                      <Mic className="w-16 h-16 text-white" />
+            {/* Call Simulation UI for Demo Mode */}
+            {isDemoMode && selectedScenario && (
+              <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 mb-6">
+                {/* Call header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
+                      <User className="w-6 h-6 text-white" />
                     </div>
-                    <div className="absolute inset-0 w-32 h-32 bg-red-500 rounded-full animate-ping opacity-20"></div>
+                    <div>
+                      <p className="text-white font-medium">발신자 미확인</p>
+                      <p className="text-gray-400 text-sm">{selectedScenario.typeName}</p>
+                    </div>
                   </div>
-                  <p className="text-white text-lg font-medium">통화 내용 실시간 분석 중...</p>
-                  {isAnalyzing && (
-                    <div className="mt-3 flex items-center space-x-2 text-yellow-300">
+                  <div className="flex items-center gap-2 text-white">
+                    <Clock className="w-4 h-4" />
+                    <span className="font-mono">{formatDuration(callDuration)}</span>
+                  </div>
+                </div>
+
+                {/* Transcript with typing animation */}
+                <div className="bg-black/30 rounded-xl p-4 min-h-[120px]">
+                  <p className="text-sm text-gray-400 mb-2">통화 내용:</p>
+                  <p className="text-white leading-relaxed">
+                    {displayedText}
+                    {isTyping && <span className="animate-blink-cursor">|</span>}
+                  </p>
+                </div>
+
+                {/* Call status */}
+                <div className="mt-4 flex items-center justify-center gap-4">
+                  {isAnalyzing ? (
+                    <div className="flex items-center gap-2 text-yellow-400">
                       <Brain className="w-5 h-5 animate-pulse" />
-                      <span className="text-sm">GPT-4 AI 분석 중...</span>
+                      <span className="text-sm">AI 분석 중...</span>
                     </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <div className="w-32 h-32 bg-gray-700 rounded-full flex items-center justify-center mb-4">
-                    <MicOff className="w-16 h-16 text-gray-400" />
-                  </div>
-                  <p className="text-gray-400 text-lg font-medium">대기 중</p>
-                </>
-              )}
-            </div>
+                  ) : isTyping ? (
+                    <div className="flex items-center gap-2 text-green-400">
+                      <PhoneCall className="w-5 h-5 animate-pulse" />
+                      <span className="text-sm">통화 진행 중...</span>
+                    </div>
+                  ) : currentAnalysis ? (
+                    <div className={`flex items-center gap-2 ${
+                      currentAnalysis.riskLevel === 'high' ? 'text-red-400' :
+                      currentAnalysis.riskLevel === 'medium' ? 'text-yellow-400' : 'text-blue-400'
+                    }`}>
+                      <Shield className="w-5 h-5" />
+                      <span className="text-sm">분석 완료</span>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            )}
+
+            {/* Microphone Status (non-demo) */}
+            {!isDemoMode && (
+              <div className="bg-gray-900 rounded-lg p-8 mb-6 flex flex-col items-center justify-center">
+                {isListening ? (
+                  <>
+                    <div className="relative mb-4">
+                      <div className="w-32 h-32 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
+                        <Mic className="w-16 h-16 text-white" />
+                      </div>
+                      <div className="absolute inset-0 w-32 h-32 bg-red-500 rounded-full animate-ping opacity-20"></div>
+                    </div>
+                    <p className="text-white text-lg font-medium">통화 내용 실시간 분석 중...</p>
+                    {isAnalyzing && (
+                      <div className="mt-3 flex items-center space-x-2 text-yellow-300">
+                        <Brain className="w-5 h-5 animate-pulse" />
+                        <span className="text-sm">GPT-4 AI 분석 중...</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="w-32 h-32 bg-gray-700 rounded-full flex items-center justify-center mb-4">
+                      <MicOff className="w-16 h-16 text-gray-400" />
+                    </div>
+                    <p className="text-gray-400 text-lg font-medium">대기 중</p>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Controls */}
             <div className="flex flex-col space-y-3">
-              {!isListening ? (
+              {!isListening && !isDemoMode ? (
                 <>
                   <button
                     onClick={startListening}
-                    className="bg-red-600 text-white px-6 py-4 rounded-lg font-semibold hover:bg-red-700 transition-colors text-lg shadow-lg flex items-center justify-center space-x-2"
+                    className="bg-red-600 text-white px-6 py-4 rounded-xl font-semibold hover:bg-red-700 transition-all text-lg shadow-lg flex items-center justify-center space-x-2 hover:scale-105"
                   >
                     <Shield className="w-6 h-6" />
-                    <span>모니터링 시작</span>
+                    <span>실제 모니터링 시작</span>
                   </button>
                   <button
-                    onClick={simulatePhishingCall}
-                    className="bg-gray-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2"
+                    onClick={() => setShowScenarioSelector(true)}
+                    className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 rounded-xl font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all text-lg shadow-lg flex items-center justify-center space-x-2 hover:scale-105"
                   >
-                    <Phone className="w-5 h-5" />
-                    <span>시뮬레이션 (데모)</span>
+                    <Sparkles className="w-6 h-6" />
+                    <span>시나리오 데모 ({MOCK_PHISHING_SCENARIOS.length}개)</span>
                   </button>
                 </>
+              ) : isDemoMode ? (
+                <button
+                  onClick={stopDemoMode}
+                  className="bg-gray-600 text-white px-6 py-4 rounded-xl font-semibold hover:bg-gray-700 transition-all text-lg shadow-lg flex items-center justify-center space-x-2"
+                >
+                  <MicOff className="w-6 h-6" />
+                  <span>데모 종료</span>
+                </button>
               ) : (
                 <button
                   onClick={stopListening}
-                  className="bg-gray-600 text-white px-6 py-4 rounded-lg font-semibold hover:bg-gray-700 transition-colors text-lg shadow-lg flex items-center justify-center space-x-2"
+                  className="bg-gray-600 text-white px-6 py-4 rounded-xl font-semibold hover:bg-gray-700 transition-all text-lg shadow-lg flex items-center justify-center space-x-2"
                 >
                   <MicOff className="w-6 h-6" />
                   <span>모니터링 중지</span>
@@ -281,9 +500,9 @@ export default function VoicePhishingPage() {
               )}
             </div>
 
-            {/* Current Transcript */}
-            {currentTranscript && (
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            {/* Current Transcript (non-demo) */}
+            {currentTranscript && !isDemoMode && (
+              <div className="mt-6 p-4 bg-gray-50 rounded-xl">
                 <h3 className="text-sm font-semibold text-gray-600 mb-2">인식된 음성</h3>
                 <p className="text-gray-900">{currentTranscript}</p>
               </div>
@@ -291,15 +510,39 @@ export default function VoicePhishingPage() {
           </div>
 
           {/* Analysis Result */}
-          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-8 overflow-hidden border border-red-100">
+          <div className={`relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-8 overflow-hidden border transition-all duration-500 ${
+            currentAnalysis?.riskLevel === 'high' ? 'border-red-400 ring-4 ring-red-200 animate-alert-pulse' :
+            currentAnalysis?.riskLevel === 'medium' ? 'border-yellow-400 ring-2 ring-yellow-200' :
+            'border-red-100'
+          }`}>
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-400 to-pink-500"></div>
             <h2 className="text-xl font-bold text-gray-900 mb-6">분석 결과</h2>
 
             {currentAnalysis ? (
               <div className="space-y-4">
+                {/* Risk Meter */}
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <h4 className="font-semibold text-gray-900 mb-3">위험도 측정</h4>
+                  <div className="risk-meter">
+                    <div
+                      className="risk-meter-indicator"
+                      style={{
+                        left: `${getRiskMeterPosition()}%`,
+                        borderColor: currentAnalysis.riskLevel === 'high' ? '#ef4444' :
+                                     currentAnalysis.riskLevel === 'medium' ? '#eab308' : '#22c55e'
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 mt-2">
+                    <span>안전</span>
+                    <span>주의</span>
+                    <span>위험</span>
+                  </div>
+                </div>
+
                 {/* Risk Level Alert */}
                 <div
-                  className={`rounded-lg p-6 ${
+                  className={`rounded-xl p-6 ${
                     currentAnalysis.riskLevel === 'high'
                       ? 'bg-red-100 border-2 border-red-500'
                       : currentAnalysis.riskLevel === 'medium'
@@ -350,11 +593,11 @@ export default function VoicePhishingPage() {
 
                 {/* AI Analysis Info */}
                 {currentAnalysis.isAIAnalyzed && (
-                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-4 border border-purple-200">
+                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-200">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-2">
                         <Brain className="w-5 h-5 text-purple-600" />
-                        <h4 className="font-semibold text-purple-900">GPT-4 AI 분석</h4>
+                        <h4 className="font-semibold text-purple-900">AI 분석 결과</h4>
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className="text-sm text-purple-700">신뢰도:</span>
@@ -367,7 +610,7 @@ export default function VoicePhishingPage() {
 
                 {/* Detected Patterns */}
                 {currentAnalysis.detectedPatterns.length > 0 && (
-                  <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="bg-gray-50 rounded-xl p-4">
                     <h4 className="font-semibold text-gray-900 mb-3">감지된 위험 패턴</h4>
                     <div className="flex flex-wrap gap-2">
                       {currentAnalysis.detectedPatterns.map((pattern, idx) => (
@@ -384,7 +627,7 @@ export default function VoicePhishingPage() {
 
                 {/* Suspicious Keywords */}
                 {currentAnalysis.suspiciousKeywords && currentAnalysis.suspiciousKeywords.length > 0 && (
-                  <div className="bg-orange-50 rounded-lg p-4">
+                  <div className="bg-orange-50 rounded-xl p-4">
                     <h4 className="font-semibold text-orange-900 mb-3">의심 키워드</h4>
                     <div className="flex flex-wrap gap-2">
                       {currentAnalysis.suspiciousKeywords.map((keyword, idx) => (
@@ -401,7 +644,7 @@ export default function VoicePhishingPage() {
 
                 {/* Guardian Notification */}
                 {guardianNotified && (
-                  <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded">
+                  <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-xl animate-fade-in-up">
                     <div className="flex items-center space-x-3">
                       <Bell className="w-6 h-6 text-purple-600" />
                       <div>
@@ -415,20 +658,20 @@ export default function VoicePhishingPage() {
                 )}
 
                 {/* Emergency Actions */}
-                <div className="bg-white border-2 border-gray-200 rounded-lg p-4">
+                <div className="bg-white border-2 border-gray-200 rounded-xl p-4">
                   <h4 className="font-semibold text-gray-900 mb-3">긴급 조치</h4>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <a
                       href="tel:112"
-                      className="block w-full bg-red-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors text-center"
+                      className="block bg-red-600 text-white px-4 py-3 rounded-xl font-semibold hover:bg-red-700 transition-all text-center hover:scale-105"
                     >
-                      112 신고하기
+                      112 신고
                     </a>
                     <a
                       href="tel:1332"
-                      className="block w-full bg-blue-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center"
+                      className="block bg-blue-600 text-white px-4 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-all text-center hover:scale-105"
                     >
-                      금융감독원 (1332)
+                      금융감독원
                     </a>
                   </div>
                 </div>
@@ -436,7 +679,9 @@ export default function VoicePhishingPage() {
             ) : (
               <div className="text-center py-12 text-gray-400">
                 <Shield className="w-16 h-16 mx-auto mb-4" />
-                <p className="text-lg">모니터링을 시작하면 분석 결과가 표시됩니다</p>
+                <p className="text-lg">모니터링을 시작하거나</p>
+                <p className="text-lg">시나리오 데모를 선택하면</p>
+                <p className="text-lg">분석 결과가 표시됩니다</p>
               </div>
             )}
           </div>
@@ -444,13 +689,14 @@ export default function VoicePhishingPage() {
 
         {/* Call History */}
         {callHistory.length > 0 && (
-          <div className="mt-6 bg-white rounded-xl shadow-lg p-6">
+          <div className="mt-6 relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-6 overflow-hidden border border-red-100">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-400 to-pink-500"></div>
             <h2 className="text-xl font-bold text-gray-900 mb-4">감지 기록</h2>
             <div className="space-y-3">
               {callHistory.map((call, idx) => (
                 <div
                   key={idx}
-                  className={`p-4 rounded-lg border-l-4 ${
+                  className={`p-4 rounded-xl border-l-4 transition-all ${
                     call.riskLevel === 'high'
                       ? 'border-red-500 bg-red-50'
                       : call.riskLevel === 'medium'
@@ -464,12 +710,12 @@ export default function VoicePhishingPage() {
                         {call.timestamp.toLocaleTimeString('ko-KR')}
                       </span>
                       <span
-                        className={`text-sm font-bold ${
+                        className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                           call.riskLevel === 'high'
-                            ? 'text-red-700'
+                            ? 'bg-red-200 text-red-800'
                             : call.riskLevel === 'medium'
-                            ? 'text-yellow-700'
-                            : 'text-blue-700'
+                            ? 'bg-yellow-200 text-yellow-800'
+                            : 'bg-blue-200 text-blue-800'
                         }`}
                       >
                         {call.riskLevel === 'high'
@@ -479,8 +725,9 @@ export default function VoicePhishingPage() {
                           : '낮은 위험'}
                       </span>
                     </div>
+                    <span className="text-xs text-gray-500">신뢰도 {call.confidence}%</span>
                   </div>
-                  <p className="text-sm text-gray-700 mb-2">{call.transcription}</p>
+                  <p className="text-sm text-gray-700 mb-2 line-clamp-2">{call.transcription}</p>
                   <div className="flex flex-wrap gap-1">
                     {call.detectedPatterns.map((pattern, pidx) => (
                       <span
@@ -498,7 +745,7 @@ export default function VoicePhishingPage() {
         )}
 
         {/* Info Box */}
-        <div className="mt-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+        <div className="mt-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-xl">
           <div className="flex items-start">
             <Info className="w-6 h-6 text-blue-500 mr-3 flex-shrink-0 mt-0.5" />
             <div>

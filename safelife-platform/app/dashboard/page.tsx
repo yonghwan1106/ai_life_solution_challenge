@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   AlertTriangle,
@@ -15,61 +15,75 @@ import {
   Bell,
   Activity,
   LogOut,
-  Eye
+  Eye,
+  Play,
+  RefreshCw,
+  Users,
+  FileText,
+  BarChart3,
+  ChevronRight,
+  X
 } from 'lucide-react'
 import { auth, type User } from '@/lib/pocketbase'
-import PageHeader from '@/components/PageHeader'
+import {
+  MOCK_ELDERLY_USERS,
+  MOCK_ALERTS,
+  MOCK_WEEKLY_ACTIVITIES,
+  getWeeklyStats,
+  formatTimeAgo,
+  type ElderlyUser as MockElderlyUser,
+  type Alert as MockAlert
+} from '@/lib/mock-data'
 
-interface ElderlyUser {
-  id: string
-  name: string
-  status: 'safe' | 'warning' | 'danger'
-  lastActivity: Date
-  photo?: string
-}
-
-interface Alert {
-  id: string
-  type: 'voice_phishing' | 'unusual_activity' | 'emergency'
-  severity: 'low' | 'medium' | 'high'
-  message: string
-  elderlyName: string
-  timestamp: Date
-  acknowledged: boolean
-}
-
-interface ActivityStat {
-  feature: string
-  icon: any
-  count: number
-  trend: 'up' | 'down' | 'stable'
-  color: string
-}
-
+// Wrapper component for Suspense boundary
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+      <DashboardContent />
+    </Suspense>
+  )
+}
+
+function DashboardLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto"></div>
+        <p className="mt-4 text-gray-600">로딩 중...</p>
+      </div>
+    </div>
+  )
+}
+
+function DashboardContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isDemoMode, setIsDemoMode] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
-  const [elderlyUsers, setElderlyUsers] = useState<ElderlyUser[]>([
-    {
-      id: '1',
-      name: '어머니 (김순자)',
-      status: 'safe',
-      lastActivity: new Date(Date.now() - 30 * 60000), // 30 minutes ago
-      photo: 'https://images.unsplash.com/photo-1609220136736-443140cffec6?w=200&h=200&fit=crop&q=80' // Asian elderly woman smiling
-    },
-    {
-      id: '2',
-      name: '아버지 (김철수)',
-      status: 'warning',
-      lastActivity: new Date(Date.now() - 2 * 60 * 60000), // 2 hours ago
-      photo: 'https://images.unsplash.com/photo-1582233479366-6d38bc390a08?w=200&h=200&fit=crop&q=80' // Asian elderly man portrait
+  const [selectedElderly, setSelectedElderly] = useState<MockElderlyUser | null>(null)
+  const [animatedStats, setAnimatedStats] = useState({ scans: 0, helps: 0, blocks: 0 })
+  const [chartAnimated, setChartAnimated] = useState(false)
+
+  // Mock 데이터 사용
+  const [elderlyUsers, setElderlyUsers] = useState<MockElderlyUser[]>(MOCK_ELDERLY_USERS)
+  const [alerts, setAlerts] = useState<MockAlert[]>(MOCK_ALERTS)
+  const weeklyStats = getWeeklyStats()
+
+  // 데모 모드 체크 - URL 파라미터 또는 버튼 클릭
+  useEffect(() => {
+    const demoParam = searchParams.get('demo')
+    if (demoParam === 'true') {
+      setIsDemoMode(true)
+      setLoading(false)
     }
-  ])
+  }, [searchParams])
 
   // 인증 체크
   useEffect(() => {
+    if (isDemoMode) return
+
     const currentUser = auth.getCurrentUser()
 
     if (!currentUser) {
@@ -84,7 +98,40 @@ export default function DashboardPage() {
 
     setUser(currentUser)
     setLoading(false)
-  }, [])
+  }, [isDemoMode])
+
+  // 통계 애니메이션
+  useEffect(() => {
+    if (loading) return
+
+    const targetScans = weeklyStats.totalScans
+    const targetHelps = weeklyStats.totalKioskHelps
+    const targetBlocks = weeklyStats.totalPhishingBlocks
+
+    const duration = 1500
+    const steps = 60
+    const interval = duration / steps
+
+    let step = 0
+    const timer = setInterval(() => {
+      step++
+      const progress = step / steps
+      const easeOut = 1 - Math.pow(1 - progress, 3)
+
+      setAnimatedStats({
+        scans: Math.round(targetScans * easeOut),
+        helps: Math.round(targetHelps * easeOut),
+        blocks: Math.round(targetBlocks * easeOut)
+      })
+
+      if (step >= steps) {
+        clearInterval(timer)
+        setChartAnimated(true)
+      }
+    }, interval)
+
+    return () => clearInterval(timer)
+  }, [loading])
 
   // 알림 패널 외부 클릭 시 닫기
   useEffect(() => {
@@ -104,60 +151,6 @@ export default function DashboardPage() {
     }
   }, [showNotifications])
 
-  const [alerts, setAlerts] = useState<Alert[]>([
-    {
-      id: '1',
-      type: 'voice_phishing',
-      severity: 'high',
-      message: '보이스피싱 의심 전화 감지 - "금융감독원" 사칭',
-      elderlyName: '어머니',
-      timestamp: new Date(Date.now() - 15 * 60000),
-      acknowledged: false
-    },
-    {
-      id: '2',
-      type: 'unusual_activity',
-      severity: 'medium',
-      message: '평소와 다른 시간대에 바코드 스캔 활동',
-      elderlyName: '아버지',
-      timestamp: new Date(Date.now() - 45 * 60000),
-      acknowledged: true
-    },
-    {
-      id: '3',
-      type: 'voice_phishing',
-      severity: 'medium',
-      message: '대출 관련 의심 전화 수신',
-      elderlyName: '어머니',
-      timestamp: new Date(Date.now() - 3 * 60 * 60000),
-      acknowledged: true
-    }
-  ])
-
-  const [activityStats, setActivityStats] = useState<ActivityStat[]>([
-    {
-      feature: '바코드 스캔',
-      icon: ScanBarcode,
-      count: 24,
-      trend: 'up',
-      color: 'green'
-    },
-    {
-      feature: '키오스크 도움',
-      icon: Smartphone,
-      count: 8,
-      trend: 'stable',
-      color: 'blue'
-    },
-    {
-      feature: '피싱 차단',
-      icon: Shield,
-      count: 3,
-      trend: 'down',
-      color: 'red'
-    }
-  ])
-
   const acknowledgeAlert = (alertId: string) => {
     setAlerts(prevAlerts =>
       prevAlerts.map(alert =>
@@ -168,19 +161,30 @@ export default function DashboardPage() {
 
   const unacknowledgedCount = alerts.filter(a => !a.acknowledged).length
 
-  const getTimeSince = (date: Date): string => {
-    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000)
-
-    if (seconds < 60) return `${seconds}초 전`
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}분 전`
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}시간 전`
-    return `${Math.floor(seconds / 86400)}일 전`
-  }
-
   const handleLogout = () => {
     auth.logout()
     router.push('/')
   }
+
+  const enterDemoMode = () => {
+    setIsDemoMode(true)
+    setLoading(false)
+    router.push('/dashboard?demo=true')
+  }
+
+  // 실시간 업데이트 시뮬레이션
+  useEffect(() => {
+    if (!isDemoMode) return
+
+    const interval = setInterval(() => {
+      setElderlyUsers(prev => prev.map(u => ({
+        ...u,
+        lastActivity: u.status === 'safe' ? Date.now() - Math.random() * 60 * 60 * 1000 : u.lastActivity
+      })))
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [isDemoMode])
 
   if (loading) {
     return (
@@ -188,6 +192,15 @@ export default function DashboardPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">로딩 중...</p>
+
+          {/* 데모 모드 버튼 */}
+          <button
+            onClick={enterDemoMode}
+            className="mt-8 demo-button"
+          >
+            <Play className="w-5 h-5" />
+            데모 모드로 보기
+          </button>
         </div>
       </div>
     )
@@ -203,6 +216,23 @@ export default function DashboardPage() {
         <div className="absolute top-40 right-10 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: '2s' }}></div>
         <div className="absolute -bottom-20 left-40 w-72 h-72 bg-violet-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: '4s' }}></div>
       </div>
+
+      {/* Demo Mode Banner */}
+      {isDemoMode && (
+        <div className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-2 px-4 text-center text-sm animate-fade-in-up">
+          <div className="flex items-center justify-center gap-2">
+            <Play className="w-4 h-4 animate-pulse" />
+            <span className="font-medium">데모 모드</span>
+            <span className="opacity-80">- 실제 데이터가 아닌 예시 데이터입니다</span>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="ml-4 px-3 py-1 bg-white/20 rounded-full text-xs hover:bg-white/30 transition-colors"
+            >
+              데모 종료
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Header with custom actions */}
       <div className="relative overflow-hidden mb-8">
@@ -221,6 +251,22 @@ export default function DashboardPage() {
                 <span className="text-sm font-medium">← 홈으로</span>
               </Link>
               <div className="flex items-center space-x-4">
+                {/* Real-time Indicator */}
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>실시간</span>
+                </div>
+
+                {/* Refresh Button */}
+                <button
+                  onClick={() => window.location.reload()}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  title="새로고침"
+                >
+                  <RefreshCw className="w-5 h-5 text-gray-600" />
+                </button>
+
+                {/* Notifications */}
                 <div className="relative notification-panel">
                   <button
                     onClick={() => setShowNotifications(!showNotifications)}
@@ -236,7 +282,7 @@ export default function DashboardPage() {
 
                   {/* Notifications Dropdown */}
                   {showNotifications && (
-                    <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-fade-in">
+                    <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-fade-in-up">
                       <div className="bg-gradient-to-r from-purple-400 to-indigo-500 px-6 py-4">
                         <div className="flex items-center justify-between">
                           <h3 className="text-white font-bold text-lg">알림</h3>
@@ -248,12 +294,13 @@ export default function DashboardPage() {
 
                       <div className="max-h-96 overflow-y-auto">
                         {alerts.length > 0 ? (
-                          alerts.slice(0, 5).map(alert => (
+                          alerts.slice(0, 5).map((alert, idx) => (
                             <div
                               key={alert.id}
-                              className={`px-6 py-4 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                              className={`px-6 py-4 border-b border-gray-100 hover:bg-gray-50 transition-colors animate-fade-in-up ${
                                 !alert.acknowledged ? 'bg-blue-50' : ''
                               }`}
+                              style={{ animationDelay: `${idx * 50}ms` }}
                             >
                               <div className="flex items-start space-x-3">
                                 <div
@@ -277,6 +324,8 @@ export default function DashboardPage() {
                                     />
                                   ) : alert.type === 'emergency' ? (
                                     <AlertTriangle className="w-5 h-5 text-red-600" />
+                                  ) : alert.type === 'daily_report' ? (
+                                    <FileText className="w-5 h-5 text-blue-600" />
                                   ) : (
                                     <Activity className="w-5 h-5 text-blue-600" />
                                   )}
@@ -287,10 +336,11 @@ export default function DashboardPage() {
                                       {alert.elderlyName}
                                     </p>
                                     <span className="text-xs text-gray-500">
-                                      {getTimeSince(alert.timestamp)}
+                                      {formatTimeAgo(alert.timestamp)}
                                     </span>
                                   </div>
-                                  <p className="text-sm text-gray-700 mb-2">{alert.message}</p>
+                                  <p className="text-xs font-medium text-gray-700 mb-1">{alert.title}</p>
+                                  <p className="text-sm text-gray-600 mb-2">{alert.message}</p>
                                   {!alert.acknowledged && (
                                     <button
                                       onClick={() => acknowledgeAlert(alert.id)}
@@ -321,13 +371,16 @@ export default function DashboardPage() {
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  <LogOut className="w-5 h-5" />
-                  <span className="text-sm font-medium">로그아웃</span>
-                </button>
+
+                {!isDemoMode && (
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    <span className="text-sm font-medium">로그아웃</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -348,7 +401,9 @@ export default function DashboardPage() {
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-indigo-500 bg-clip-text text-transparent mb-2">
                   보호자 대시보드
                 </h1>
-                <p className="text-gray-600 text-base">{user?.name}님, 환영합니다! 가족의 안전 상태를 실시간으로 모니터링합니다</p>
+                <p className="text-gray-600 text-base">
+                  {isDemoMode ? '데모 사용자' : user?.name}님, 환영합니다! 가족의 안전 상태를 실시간으로 모니터링합니다
+                </p>
               </div>
             </div>
           </div>
@@ -358,159 +413,261 @@ export default function DashboardPage() {
       </div>
 
       <main className="max-w-7xl mx-auto px-4 pb-8">
-        {/* Quick Stats */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-6 overflow-hidden border border-purple-100">
+        {/* Quick Stats - Animated */}
+        <div className="grid md:grid-cols-4 gap-6 mb-8">
+          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-6 overflow-hidden border border-purple-100 hover:card-shadow-hover transition-all duration-300 transform hover:-translate-y-1">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-400 to-indigo-500"></div>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500 mb-1">보호 중인 가족</p>
                 <p className="text-3xl font-bold text-gray-900">{elderlyUsers.length}</p>
+                <p className="text-xs text-green-600 mt-1">모두 연결됨</p>
               </div>
               <div className="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center">
-                <Activity className="w-8 h-8 text-indigo-600" />
+                <Users className="w-8 h-8 text-indigo-600" />
               </div>
             </div>
           </div>
 
-          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-6 overflow-hidden border border-red-100">
+          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-6 overflow-hidden border border-red-100 hover:card-shadow-hover transition-all duration-300 transform hover:-translate-y-1">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-400 to-pink-500"></div>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500 mb-1">미확인 알림</p>
-                <p className="text-3xl font-bold text-red-600">{unacknowledgedCount}</p>
+                <p className={`text-3xl font-bold ${unacknowledgedCount > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                  {unacknowledgedCount}
+                </p>
+                {unacknowledgedCount > 0 && (
+                  <p className="text-xs text-red-500 mt-1 animate-pulse">확인이 필요합니다</p>
+                )}
               </div>
-              <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center">
-                <Bell className="w-8 h-8 text-red-600" />
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center ${unacknowledgedCount > 0 ? 'bg-red-100 animate-alert-pulse' : 'bg-gray-100'}`}>
+                <Bell className={`w-8 h-8 ${unacknowledgedCount > 0 ? 'text-red-600' : 'text-gray-400'}`} />
               </div>
             </div>
           </div>
 
-          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-6 overflow-hidden border border-green-100">
+          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-6 overflow-hidden border border-green-100 hover:card-shadow-hover transition-all duration-300 transform hover:-translate-y-1">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 to-emerald-500"></div>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500 mb-1">이번 주 활동</p>
                 <p className="text-3xl font-bold text-green-600">
-                  {activityStats.reduce((sum, stat) => sum + stat.count, 0)}
+                  {animatedStats.scans + animatedStats.helps}
+                </p>
+                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" />
+                  지난주 대비 증가
                 </p>
               </div>
               <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center">
-                <TrendingUp className="w-8 h-8 text-green-600" />
+                <Activity className="w-8 h-8 text-green-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-6 overflow-hidden border border-blue-100 hover:card-shadow-hover transition-all duration-300 transform hover:-translate-y-1">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-500"></div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500 mb-1">피싱 차단</p>
+                <p className="text-3xl font-bold text-blue-600">{animatedStats.blocks}</p>
+                <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                  <Shield className="w-3 h-3" />
+                  가족 보호 중
+                </p>
+              </div>
+              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center">
+                <Shield className="w-8 h-8 text-blue-600" />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Elderly Users Status */}
+        {/* Elderly Users Status - 5명 */}
         <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-8 mb-8 overflow-hidden border border-purple-100">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-400 to-indigo-500"></div>
-          <h2 className="text-xl font-bold text-gray-900 mb-6">가족 상태</h2>
-          <div className="space-y-4">
-            {elderlyUsers.map(user => (
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900">가족 상태</h2>
+            <div className="flex items-center gap-4 text-sm">
+              <span className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                안전 {elderlyUsers.filter(u => u.status === 'safe').length}
+              </span>
+              <span className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                주의 {elderlyUsers.filter(u => u.status === 'warning').length}
+              </span>
+              <span className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                위험 {elderlyUsers.filter(u => u.status === 'danger').length}
+              </span>
+            </div>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {elderlyUsers.map((elderly, idx) => (
               <div
-                key={user.id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                key={elderly.id}
+                onClick={() => setSelectedElderly(elderly)}
+                className={`p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer hover:card-shadow-hover transform hover:-translate-y-1 animate-fade-in-up ${
+                  elderly.status === 'danger'
+                    ? 'border-red-300 bg-red-50 animate-alert-pulse'
+                    : elderly.status === 'warning'
+                    ? 'border-yellow-300 bg-yellow-50'
+                    : 'border-gray-200 bg-gray-50 hover:border-indigo-300'
+                }`}
+                style={{ animationDelay: `${idx * 100}ms` }}
               >
                 <div className="flex items-center space-x-4">
                   <div className="relative">
-                    {user.photo ? (
-                      <img
-                        src={user.photo}
-                        alt={user.name}
-                        className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-lg"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center shadow-lg">
-                        <span className="text-white text-xl font-bold">
-                          {user.name.charAt(0)}
-                        </span>
-                      </div>
-                    )}
+                    <img
+                      src={elderly.photo}
+                      alt={elderly.name}
+                      className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-lg"
+                    />
                     <div
                       className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center ${
-                        user.status === 'safe'
+                        elderly.status === 'safe'
                           ? 'bg-green-500'
-                          : user.status === 'warning'
+                          : elderly.status === 'warning'
                           ? 'bg-yellow-500'
-                          : 'bg-red-500'
+                          : 'bg-red-500 animate-pulse'
                       }`}
                     >
-                      {user.status === 'safe' ? (
+                      {elderly.status === 'safe' ? (
                         <CheckCircle className="w-4 h-4 text-white" />
                       ) : (
                         <AlertTriangle className="w-4 h-4 text-white" />
                       )}
                     </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{user.name}</h3>
-                    <div className="flex items-center text-sm text-gray-500 space-x-2">
-                      <Clock className="w-4 h-4" />
-                      <span>마지막 활동: {getTimeSince(user.lastActivity)}</span>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">{elderly.relationship} ({elderly.name})</h3>
+                    <p className="text-sm text-gray-500">{elderly.age}세</p>
+                    <div className="flex items-center text-xs text-gray-500 mt-1">
+                      <Clock className="w-3 h-3 mr-1" />
+                      <span>{formatTimeAgo(elderly.lastActivity)}</span>
                     </div>
                   </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400" />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      user.status === 'safe'
-                        ? 'bg-green-100 text-green-800'
-                        : user.status === 'warning'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}
-                  >
-                    {user.status === 'safe' ? '안전' : user.status === 'warning' ? '주의' : '위험'}
-                  </span>
-                  <a
-                    href={`tel:01012345678`}
-                    className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors"
-                  >
-                    <Phone className="w-5 h-5" />
-                  </a>
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <p className={`text-sm font-medium ${
+                    elderly.status === 'danger' ? 'text-red-600' :
+                    elderly.status === 'warning' ? 'text-yellow-600' : 'text-green-600'
+                  }`}>
+                    {elderly.statusMessage}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
+        {/* Selected Elderly Detail Modal */}
+        {selectedElderly && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in-up">
+            <div className="bg-white rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900">상세 정보</h3>
+                <button
+                  onClick={() => setSelectedElderly(null)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex items-center space-x-4 mb-6">
+                <img
+                  src={selectedElderly.photo}
+                  alt={selectedElderly.name}
+                  className="w-24 h-24 rounded-full object-cover border-4 border-indigo-100"
+                />
+                <div>
+                  <h4 className="text-2xl font-bold text-gray-900">{selectedElderly.name}</h4>
+                  <p className="text-gray-500">{selectedElderly.relationship} | {selectedElderly.age}세</p>
+                  <p className="text-sm text-gray-400 mt-1">{selectedElderly.address}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-green-50 rounded-xl p-4 text-center">
+                  <ScanBarcode className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-green-600">{selectedElderly.weeklyStats.barcodeScans}</p>
+                  <p className="text-xs text-gray-500">바코드 스캔</p>
+                </div>
+                <div className="bg-blue-50 rounded-xl p-4 text-center">
+                  <Smartphone className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-blue-600">{selectedElderly.weeklyStats.kioskHelps}</p>
+                  <p className="text-xs text-gray-500">키오스크 도움</p>
+                </div>
+                <div className="bg-red-50 rounded-xl p-4 text-center">
+                  <Shield className="w-8 h-8 text-red-600 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-red-600">{selectedElderly.weeklyStats.phishingBlocks}</p>
+                  <p className="text-xs text-gray-500">피싱 차단</p>
+                </div>
+              </div>
+
+              <a
+                href={`tel:${selectedElderly.phone}`}
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-4 rounded-xl font-semibold hover:opacity-90 transition-opacity"
+              >
+                <Phone className="w-5 h-5" />
+                전화 걸기 ({selectedElderly.phone})
+              </a>
+            </div>
+          </div>
+        )}
+
         <div className="grid lg:grid-cols-2 gap-6">
-          {/* Recent Alerts */}
+          {/* Recent Alerts - 10개 */}
           <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-8 overflow-hidden border border-red-100">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-400 to-pink-500"></div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900">최근 알림</h2>
               <span className="text-sm text-gray-500">{alerts.length}개의 알림</span>
             </div>
-            <div className="space-y-3">
-              {alerts.map(alert => (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {alerts.slice(0, 6).map((alert, idx) => (
                 <div
                   key={alert.id}
-                  className={`p-4 rounded-lg border-l-4 ${
+                  className={`p-4 rounded-xl border-l-4 transition-all duration-300 animate-fade-in-up ${
                     alert.severity === 'high'
                       ? 'border-red-500 bg-red-50'
                       : alert.severity === 'medium'
                       ? 'border-yellow-500 bg-yellow-50'
                       : 'border-blue-500 bg-blue-50'
                   } ${alert.acknowledged ? 'opacity-60' : ''}`}
+                  style={{ animationDelay: `${idx * 50}ms` }}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center space-x-2">
                       {alert.type === 'voice_phishing' ? (
-                        <Shield className="w-5 h-5 text-red-600" />
+                        <Shield className={`w-5 h-5 ${
+                          alert.severity === 'high' ? 'text-red-600' : 'text-yellow-600'
+                        }`} />
                       ) : alert.type === 'emergency' ? (
                         <AlertTriangle className="w-5 h-5 text-red-600" />
+                      ) : alert.type === 'daily_report' ? (
+                        <FileText className="w-5 h-5 text-blue-600" />
                       ) : (
-                        <Bell className="w-5 h-5 text-yellow-600" />
+                        <Clock className="w-5 h-5 text-yellow-600" />
                       )}
                       <span className="text-sm font-semibold text-gray-900">
                         {alert.elderlyName}
                       </span>
+                      {!alert.acknowledged && (
+                        <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">NEW</span>
+                      )}
                     </div>
-                    <span className="text-xs text-gray-500">{getTimeSince(alert.timestamp)}</span>
+                    <span className="text-xs text-gray-500">{formatTimeAgo(alert.timestamp)}</span>
                   </div>
-                  <p className="text-sm text-gray-700 mb-2">{alert.message}</p>
+                  <p className="text-xs font-medium text-gray-700 mb-1">{alert.title}</p>
+                  <p className="text-sm text-gray-600 mb-2">{alert.message}</p>
+                  {alert.actionTaken && (
+                    <p className="text-xs text-green-600 mb-2">조치: {alert.actionTaken}</p>
+                  )}
                   {!alert.acknowledged && (
                     <button
                       onClick={() => acknowledgeAlert(alert.id)}
@@ -524,111 +681,145 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Activity Statistics */}
+          {/* Activity Statistics with Animated Chart */}
           <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-8 overflow-hidden border border-purple-100">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-400 to-indigo-500"></div>
             <h2 className="text-xl font-bold text-gray-900 mb-6">이번 주 활동 통계</h2>
-            <div className="space-y-4">
-              {activityStats.map((stat, idx) => {
-                const Icon = stat.icon
-                return (
-                  <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center bg-${stat.color}-100`}
-                      >
-                        <Icon className={`w-6 h-6 text-${stat.color}-600`} />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{stat.feature}</h3>
-                        <p className="text-sm text-gray-500">지난 7일간</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-gray-900">{stat.count}</p>
-                      <div className="flex items-center text-sm">
-                        {stat.trend === 'up' ? (
-                          <>
-                            <TrendingUp className="w-4 h-4 text-green-600 mr-1" />
-                            <span className="text-green-600">증가</span>
-                          </>
-                        ) : stat.trend === 'down' ? (
-                          <>
-                            <TrendingUp className="w-4 h-4 text-red-600 mr-1 transform rotate-180" />
-                            <span className="text-red-600">감소</span>
-                          </>
-                        ) : (
-                          <span className="text-gray-500">유지</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+
+            {/* Stats Summary */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="bg-green-50 rounded-xl p-4 text-center transform transition-all duration-300 hover:scale-105">
+                <ScanBarcode className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-green-600">{animatedStats.scans}</p>
+                <p className="text-xs text-gray-500">바코드 스캔</p>
+              </div>
+              <div className="bg-blue-50 rounded-xl p-4 text-center transform transition-all duration-300 hover:scale-105">
+                <Smartphone className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-blue-600">{animatedStats.helps}</p>
+                <p className="text-xs text-gray-500">키오스크 도움</p>
+              </div>
+              <div className="bg-red-50 rounded-xl p-4 text-center transform transition-all duration-300 hover:scale-105">
+                <Shield className="w-6 h-6 text-red-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-red-600">{animatedStats.blocks}</p>
+                <p className="text-xs text-gray-500">피싱 차단</p>
+              </div>
             </div>
 
-            {/* Weekly Chart Placeholder */}
-            <div className="mt-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">주간 활동 추이</h3>
-              <div className="flex items-end justify-between h-32 space-x-2">
-                {[40, 65, 50, 80, 70, 90, 75].map((height, idx) => (
-                  <div key={idx} className="flex-1 flex flex-col items-center">
-                    <div
-                      className="w-full bg-indigo-500 rounded-t"
-                      style={{ height: `${height}%` }}
-                    ></div>
-                    <span className="text-xs text-gray-500 mt-1">
-                      {['월', '화', '수', '목', '금', '토', '일'][idx]}
-                    </span>
-                  </div>
-                ))}
+            {/* Animated Weekly Chart */}
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-700">주간 활동 추이</h3>
+                <div className="flex items-center gap-4 text-xs">
+                  <span className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-indigo-500 rounded"></div>
+                    바코드
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-purple-500 rounded"></div>
+                    키오스크
+                  </span>
+                </div>
               </div>
+              <div className="flex items-end justify-between h-40 space-x-2">
+                {MOCK_WEEKLY_ACTIVITIES.map((day, idx) => {
+                  const maxScans = Math.max(...MOCK_WEEKLY_ACTIVITIES.map(d => d.barcodeScans))
+                  const scanHeight = (day.barcodeScans / maxScans) * 100
+                  const kioskHeight = (day.kioskHelps / maxScans) * 100
+
+                  return (
+                    <div key={idx} className="flex-1 flex flex-col items-center">
+                      <div className="w-full flex gap-1 items-end h-32">
+                        <div
+                          className="flex-1 bg-indigo-500 rounded-t transition-all duration-1000"
+                          style={{
+                            height: chartAnimated ? `${scanHeight}%` : '0%',
+                            transitionDelay: `${idx * 100}ms`
+                          }}
+                        ></div>
+                        <div
+                          className="flex-1 bg-purple-400 rounded-t transition-all duration-1000"
+                          style={{
+                            height: chartAnimated ? `${kioskHeight}%` : '0%',
+                            transitionDelay: `${idx * 100 + 50}ms`
+                          }}
+                        ></div>
+                      </div>
+                      <span className="text-xs text-gray-500 mt-2 font-medium">
+                        {day.dayName}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Trend Indicator */}
+            <div className="mt-4 flex items-center justify-center gap-2 text-sm">
+              {weeklyStats.trend === 'up' ? (
+                <>
+                  <TrendingUp className="w-5 h-5 text-green-500" />
+                  <span className="text-green-600 font-medium">활동량 증가 추세</span>
+                </>
+              ) : weeklyStats.trend === 'down' ? (
+                <>
+                  <TrendingUp className="w-5 h-5 text-red-500 transform rotate-180" />
+                  <span className="text-red-600 font-medium">활동량 감소 추세</span>
+                </>
+              ) : (
+                <span className="text-gray-600">활동량 유지 중</span>
+              )}
             </div>
           </div>
         </div>
 
         {/* Emergency Contacts */}
-        <div className="mt-6 bg-white rounded-xl shadow-lg p-6">
+        <div className="mt-6 bg-white rounded-3xl shadow-lg p-6 border border-purple-100">
           <h2 className="text-xl font-bold text-gray-900 mb-4">긴급 연락처</h2>
           <div className="grid md:grid-cols-3 gap-4">
             <a
               href="tel:112"
-              className="flex items-center justify-between p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors border border-red-200"
+              className="flex items-center justify-between p-4 bg-red-50 rounded-xl hover:bg-red-100 transition-all duration-300 border border-red-200 transform hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="flex items-center space-x-3">
-                <Phone className="w-6 h-6 text-red-600" />
+                <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
+                  <Phone className="w-6 h-6 text-white" />
+                </div>
                 <div>
                   <p className="font-semibold text-gray-900">경찰청</p>
-                  <p className="text-sm text-gray-600">112</p>
+                  <p className="text-lg font-bold text-red-600">112</p>
                 </div>
               </div>
-              <span className="text-red-600">→</span>
+              <span className="text-red-600 text-2xl">→</span>
             </a>
             <a
               href="tel:119"
-              className="flex items-center justify-between p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors border border-orange-200"
+              className="flex items-center justify-between p-4 bg-orange-50 rounded-xl hover:bg-orange-100 transition-all duration-300 border border-orange-200 transform hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="flex items-center space-x-3">
-                <Phone className="w-6 h-6 text-orange-600" />
+                <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center">
+                  <Phone className="w-6 h-6 text-white" />
+                </div>
                 <div>
                   <p className="font-semibold text-gray-900">소방서</p>
-                  <p className="text-sm text-gray-600">119</p>
+                  <p className="text-lg font-bold text-orange-600">119</p>
                 </div>
               </div>
-              <span className="text-orange-600">→</span>
+              <span className="text-orange-600 text-2xl">→</span>
             </a>
             <a
               href="tel:1332"
-              className="flex items-center justify-between p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors border border-blue-200"
+              className="flex items-center justify-between p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-all duration-300 border border-blue-200 transform hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="flex items-center space-x-3">
-                <Phone className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+                  <Phone className="w-6 h-6 text-white" />
+                </div>
                 <div>
                   <p className="font-semibold text-gray-900">금융감독원</p>
-                  <p className="text-sm text-gray-600">1332</p>
+                  <p className="text-lg font-bold text-blue-600">1332</p>
                 </div>
               </div>
-              <span className="text-blue-600">→</span>
+              <span className="text-blue-600 text-2xl">→</span>
             </a>
           </div>
         </div>

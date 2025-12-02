@@ -1,14 +1,15 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import Webcam from 'react-webcam'
 import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/library'
-import { ScanBarcode, Camera, Volume2, AlertTriangle, Info } from 'lucide-react'
+import { ScanBarcode, Camera, Volume2, AlertTriangle, Info, Play, Pause, SkipForward, RotateCcw, Sparkles, CheckCircle } from 'lucide-react'
 import { speak, stopSpeaking } from '@/lib/utils'
 import { productsApi, scanHistoryApi, type Product } from '@/lib/pocketbase'
 import { getProductByBarcode, convertToProductInfo } from '@/lib/food-safety-api'
 import PageHeader from '@/components/PageHeader'
+import { getDemoProducts, type MockProduct } from '@/lib/mock-data'
 
 interface ProductInfo {
   code: string
@@ -32,13 +33,142 @@ export default function BarcodePage() {
   const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null)
   const scanningIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Demo mode states
+  const [isDemoMode, setIsDemoMode] = useState(false)
+  const [demoProducts, setDemoProducts] = useState<MockProduct[]>([])
+  const [currentDemoIndex, setCurrentDemoIndex] = useState(0)
+  const [isDemoPaused, setIsDemoPaused] = useState(false)
+  const [isScanning, setIsScanning] = useState(false) // For scan animation
+  const [showSuccess, setShowSuccess] = useState(false)
+  const demoIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
   useEffect(() => {
     // Cleanup on unmount
     return () => {
       stopScanning()
       stopSpeaking()
+      stopDemoMode()
     }
   }, [])
+
+  // Demo auto-advance effect
+  useEffect(() => {
+    if (isDemoMode && !isDemoPaused && productInfo) {
+      demoIntervalRef.current = setTimeout(() => {
+        if (currentDemoIndex < demoProducts.length - 1) {
+          advanceDemo()
+        } else {
+          // Demo complete
+          speak('데모가 완료되었습니다. 처음부터 다시 보시려면 다시 시작 버튼을 눌러주세요.')
+        }
+      }, 5000) // 5 seconds per product
+    }
+    return () => {
+      if (demoIntervalRef.current) {
+        clearTimeout(demoIntervalRef.current)
+      }
+    }
+  }, [isDemoMode, isDemoPaused, productInfo, currentDemoIndex])
+
+  // Start demo mode
+  const startDemoMode = () => {
+    stopScanning()
+    setError(null)
+    setProductInfo(null)
+    setIsDemoMode(true)
+    setIsDemoPaused(false)
+    setCurrentDemoIndex(0)
+
+    const products = getDemoProducts()
+    setDemoProducts(products)
+
+    speak('데모 모드를 시작합니다. 5가지 제품을 자동으로 스캔해서 보여드립니다.')
+
+    // Start scanning animation then show first product
+    setTimeout(() => {
+      showDemoProduct(products[0], 0)
+    }, 2000)
+  }
+
+  // Show demo product with scan animation
+  const showDemoProduct = (product: MockProduct, index: number) => {
+    setIsScanning(true)
+    setShowSuccess(false)
+    setProductInfo(null)
+
+    // Simulate scanning animation
+    setTimeout(() => {
+      setIsScanning(false)
+      setShowSuccess(true)
+
+      const info: ProductInfo = {
+        code: product.barcode,
+        name: product.name,
+        manufacturer: product.manufacturer,
+        ingredients: product.ingredients,
+        allergens: product.allergens,
+        warnings: product.warnings,
+        category: product.category,
+        volume: product.volume
+      }
+
+      setProductInfo(info)
+      setCurrentDemoIndex(index)
+      speakProductInfo(info)
+
+      setTimeout(() => setShowSuccess(false), 1000)
+    }, 1500) // 1.5 second scan animation
+  }
+
+  // Advance to next demo product
+  const advanceDemo = () => {
+    const nextIndex = currentDemoIndex + 1
+    if (nextIndex < demoProducts.length) {
+      showDemoProduct(demoProducts[nextIndex], nextIndex)
+    }
+  }
+
+  // Skip to next product manually
+  const skipToNext = () => {
+    if (demoIntervalRef.current) {
+      clearTimeout(demoIntervalRef.current)
+    }
+    advanceDemo()
+  }
+
+  // Toggle demo pause
+  const toggleDemoPause = () => {
+    setIsDemoPaused(!isDemoPaused)
+    if (isDemoPaused) {
+      speak('데모를 재개합니다.')
+    } else {
+      speak('데모를 일시정지했습니다.')
+    }
+  }
+
+  // Restart demo
+  const restartDemo = () => {
+    if (demoIntervalRef.current) {
+      clearTimeout(demoIntervalRef.current)
+    }
+    setCurrentDemoIndex(0)
+    setIsDemoPaused(false)
+    speak('데모를 처음부터 다시 시작합니다.')
+    showDemoProduct(demoProducts[0], 0)
+  }
+
+  // Stop demo mode
+  const stopDemoMode = () => {
+    if (demoIntervalRef.current) {
+      clearTimeout(demoIntervalRef.current)
+    }
+    setIsDemoMode(false)
+    setDemoProducts([])
+    setCurrentDemoIndex(0)
+    setIsDemoPaused(false)
+    setIsScanning(false)
+    setProductInfo(null)
+  }
 
   const startScanning = () => {
     setError(null)
@@ -364,25 +494,150 @@ export default function BarcodePage() {
                 </button>
               </div>
             </div>
-          ) : !productInfo ? (
+          ) : !productInfo && !isDemoMode ? (
             <div className="text-center py-12">
               <Camera className="w-24 h-24 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 mb-6 text-lg">바코드 스캔을 시작하려면 버튼을 눌러주세요</p>
-              <button
-                onClick={startScanning}
-                className="bg-green-600 text-white px-8 py-4 rounded-full font-semibold hover:bg-green-700 transition-colors text-lg shadow-lg"
-              >
-                <Camera className="w-6 h-6 inline mr-2" />
-                스캔 시작하기
-              </button>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  onClick={startScanning}
+                  className="bg-green-600 text-white px-8 py-4 rounded-full font-semibold hover:bg-green-700 transition-all text-lg shadow-lg hover:shadow-xl hover:scale-105"
+                >
+                  <Camera className="w-6 h-6 inline mr-2" />
+                  스캔 시작하기
+                </button>
+                <button
+                  onClick={startDemoMode}
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-4 rounded-full font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all text-lg shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  <Sparkles className="w-6 h-6" />
+                  데모 보기
+                </button>
+              </div>
+            </div>
+          ) : isDemoMode && isScanning ? (
+            // Demo scanning animation
+            <div className="text-center py-12">
+              <div className="relative w-64 h-64 mx-auto mb-6">
+                {/* Scanning frame */}
+                <div className="absolute inset-0 border-4 border-green-500 rounded-2xl">
+                  {/* Scanning line animation */}
+                  <div className="absolute left-2 right-2 h-1 bg-gradient-to-r from-transparent via-green-500 to-transparent animate-scan-line"></div>
+                </div>
+                {/* Barcode icon */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <ScanBarcode className="w-24 h-24 text-green-500 animate-pulse" />
+                </div>
+                {/* Corner accents */}
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-green-400 rounded-tl-xl"></div>
+                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-green-400 rounded-tr-xl"></div>
+                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-green-400 rounded-bl-xl"></div>
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-green-400 rounded-br-xl"></div>
+              </div>
+              <p className="text-xl font-semibold text-green-700 animate-pulse">바코드 스캔 중...</p>
+              <p className="text-gray-500 mt-2">제품 {currentDemoIndex + 1} / {demoProducts.length}</p>
+            </div>
+          ) : isDemoMode && !productInfo ? (
+            // Demo mode initializing
+            <div className="text-center py-12">
+              <Sparkles className="w-24 h-24 text-purple-400 mx-auto mb-4 animate-pulse" />
+              <p className="text-xl font-semibold text-purple-700">데모 모드 준비 중...</p>
             </div>
           ) : null}
         </div>
 
+        {/* Demo Mode Progress & Controls */}
+        {isDemoMode && productInfo && (
+          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-6 mb-6 overflow-hidden border border-purple-200">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-400 to-indigo-500"></div>
+
+            {/* Progress bar */}
+            <div className="mb-4">
+              <div className="flex justify-between text-sm text-gray-600 mb-2">
+                <span>데모 진행률</span>
+                <span>{currentDemoIndex + 1} / {demoProducts.length}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-500"
+                  style={{ width: `${((currentDemoIndex + 1) / demoProducts.length) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Progress dots */}
+            <div className="flex justify-center gap-2 mb-4">
+              {demoProducts.map((_, idx) => (
+                <div
+                  key={idx}
+                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                    idx < currentDemoIndex
+                      ? 'bg-green-500'
+                      : idx === currentDemoIndex
+                      ? 'bg-purple-500 scale-125'
+                      : 'bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Control buttons */}
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={toggleDemoPause}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all ${
+                  isDemoPaused
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                    : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                }`}
+              >
+                {isDemoPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
+                {isDemoPaused ? '재개' : '일시정지'}
+              </button>
+              <button
+                onClick={skipToNext}
+                disabled={currentDemoIndex >= demoProducts.length - 1}
+                className="flex items-center gap-2 px-4 py-2 rounded-full font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <SkipForward className="w-5 h-5" />
+                다음
+              </button>
+              <button
+                onClick={restartDemo}
+                className="flex items-center gap-2 px-4 py-2 rounded-full font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all"
+              >
+                <RotateCcw className="w-5 h-5" />
+                처음부터
+              </button>
+              <button
+                onClick={stopDemoMode}
+                className="flex items-center gap-2 px-4 py-2 rounded-full font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-all"
+              >
+                데모 종료
+              </button>
+            </div>
+
+            {/* Auto-advance indicator */}
+            {!isDemoPaused && currentDemoIndex < demoProducts.length - 1 && (
+              <p className="text-center text-sm text-gray-500 mt-3">
+                5초 후 다음 제품으로 자동 이동합니다
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Product Information */}
         {productInfo && (
-          <div className="relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-8 animate-fade-in overflow-hidden border border-green-100">
+          <div className={`relative bg-white/80 backdrop-blur rounded-3xl card-shadow p-8 overflow-hidden border ${showSuccess ? 'border-green-400 ring-4 ring-green-200' : 'border-green-100'} transition-all duration-300`}>
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 to-emerald-500"></div>
+
+            {/* Success indicator */}
+            {showSuccess && (
+              <div className="absolute top-4 right-4">
+                <CheckCircle className="w-8 h-8 text-green-500 animate-bounce" />
+              </div>
+            )}
+
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">제품 정보</h2>
               <button
@@ -457,21 +712,38 @@ export default function BarcodePage() {
 
             {/* Actions */}
             <div className="mt-8 flex justify-center space-x-4">
-              <button
-                onClick={() => {
-                  setProductInfo(null)
-                  startScanning()
-                }}
-                className="bg-green-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-green-700 transition-colors"
-              >
-                다른 제품 스캔
-              </button>
-              <Link
-                href="/"
-                className="bg-gray-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-gray-700 transition-colors"
-              >
-                홈으로 돌아가기
-              </Link>
+              {isDemoMode ? (
+                // Demo mode - only show stop demo button in action area (controls above)
+                null
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      setProductInfo(null)
+                      startScanning()
+                    }}
+                    className="bg-green-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-green-700 transition-all hover:scale-105"
+                  >
+                    다른 제품 스캔
+                  </button>
+                  <button
+                    onClick={() => {
+                      setProductInfo(null)
+                      startDemoMode()
+                    }}
+                    className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-full font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all hover:scale-105"
+                  >
+                    <Sparkles className="w-5 h-5 inline mr-2" />
+                    데모 보기
+                  </button>
+                  <Link
+                    href="/"
+                    className="bg-gray-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-gray-700 transition-all hover:scale-105"
+                  >
+                    홈으로 돌아가기
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         )}
