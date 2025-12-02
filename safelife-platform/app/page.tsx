@@ -92,7 +92,7 @@ export default function Home() {
       tagBg: 'bg-emerald-100 text-emerald-700',
       number: 1,
       badge: 'POPULAR',
-      image: 'https://images.unsplash.com/photo-1534723452862-4c874018d66d?w=800&q=80'
+      image: 'https://images.unsplash.com/photo-1534723452862-4c874018d66d?w=400&h=300&fit=crop&q=80'
     },
     {
       href: '/kiosk',
@@ -106,7 +106,7 @@ export default function Home() {
       tagBg: 'bg-blue-100 text-blue-700',
       number: 2,
       badge: 'NEW',
-      image: 'https://images.unsplash.com/photo-1556742049-0cfed4f7a07d?w=800&q=80'
+      image: 'https://images.unsplash.com/photo-1567521464027-f127ff144326?w=400&h=300&fit=crop&q=80'
     },
     {
       href: '/voicephishing',
@@ -120,7 +120,7 @@ export default function Home() {
       tagBg: 'bg-rose-100 text-rose-700',
       number: 3,
       badge: 'AI 보안',
-      image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&q=80'
+      image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400&h=300&fit=crop&q=80'
     },
     {
       href: '/dashboard',
@@ -134,7 +134,7 @@ export default function Home() {
       tagBg: 'bg-violet-100 text-violet-700',
       number: 4,
       badge: '통합 관리',
-      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80'
+      image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&h=300&fit=crop&q=80'
     },
   ]
 
@@ -282,7 +282,7 @@ export default function Home() {
               {/* Main Image */}
               <div className="relative rounded-3xl overflow-hidden shadow-2xl">
                 <Image
-                  src="https://images.unsplash.com/photo-1581579438747-104c53d7fbc4?w=1200&q=80"
+                  src="https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?w=600&h=400&fit=crop&q=80"
                   alt="가족이 함께하는 따뜻한 시간"
                   width={600}
                   height={400}
