@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { Shield, Smartphone, ScanBarcode, Eye, Info, Sparkles, Heart, Zap, LogIn, UserCircle, ChevronRight, Star, Users, TrendingUp, Award, Play } from 'lucide-react'
 import { useEffect, useState, useRef } from 'react'
 import { auth } from '@/lib/pocketbase'
@@ -90,7 +91,8 @@ export default function Home() {
       borderColor: 'border-emerald-200',
       tagBg: 'bg-emerald-100 text-emerald-700',
       number: 1,
-      badge: 'POPULAR'
+      badge: 'POPULAR',
+      image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400&h=300&fit=crop&q=80'
     },
     {
       href: '/kiosk',
@@ -103,7 +105,8 @@ export default function Home() {
       borderColor: 'border-blue-200',
       tagBg: 'bg-blue-100 text-blue-700',
       number: 2,
-      badge: 'NEW'
+      badge: 'NEW',
+      image: 'https://images.unsplash.com/photo-1567521464027-f127ff144326?w=400&h=300&fit=crop&q=80'
     },
     {
       href: '/voicephishing',
@@ -116,7 +119,8 @@ export default function Home() {
       borderColor: 'border-rose-200',
       tagBg: 'bg-rose-100 text-rose-700',
       number: 3,
-      badge: 'AI 보안'
+      badge: 'AI 보안',
+      image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400&h=300&fit=crop&q=80'
     },
     {
       href: '/dashboard',
@@ -129,7 +133,8 @@ export default function Home() {
       borderColor: 'border-violet-200',
       tagBg: 'bg-violet-100 text-violet-700',
       number: 4,
-      badge: '통합 관리'
+      badge: '통합 관리',
+      image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=400&h=300&fit=crop&q=80'
     },
   ]
 
@@ -224,48 +229,101 @@ export default function Home() {
 
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-4 pt-16 pb-8 sm:px-6 lg:px-8">
-        <div className="text-center mb-20">
-          {/* Badge */}
-          <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 backdrop-blur border border-indigo-200/50 px-5 py-2.5 rounded-full mb-8 animate-slide-up shadow-lg shadow-indigo-500/10">
-            <div className="w-2 h-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full animate-pulse-soft"></div>
-            <Award className="w-4 h-4 text-indigo-600" />
-            <span className="text-sm font-bold text-indigo-700">AI 라이프 솔루션 챌린지 2025</span>
-            <ChevronRight className="w-4 h-4 text-indigo-400" />
+        <div className="grid lg:grid-cols-2 gap-12 items-center mb-20">
+          {/* Left: Text Content */}
+          <div className="text-center lg:text-left">
+            {/* Badge */}
+            <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 backdrop-blur border border-indigo-200/50 px-5 py-2.5 rounded-full mb-8 animate-slide-up shadow-lg shadow-indigo-500/10">
+              <div className="w-2 h-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full animate-pulse-soft"></div>
+              <Award className="w-4 h-4 text-indigo-600" />
+              <span className="text-sm font-bold text-indigo-700">AI 라이프 솔루션 챌린지 2025</span>
+              <ChevronRight className="w-4 h-4 text-indigo-400" />
+            </div>
+
+            {/* Main Heading */}
+            <div className="animate-slide-up" style={{ animationDelay: '100ms' }}>
+              <h2 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
+                <span className="text-gradient-aurora">누구나 안전하고</span>
+                <br />
+                <span className="text-gradient">편리한 디지털 생활</span>
+              </h2>
+            </div>
+
+            {/* Subtitle */}
+            <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto lg:mx-0 leading-relaxed mb-10 animate-slide-up" style={{ animationDelay: '200ms' }}>
+              <span className="font-semibold text-gray-800">AI 기술</span>로 고령자의 일상을 보호하고,
+              <br className="hidden sm:block" />
+              디지털 세상과의 <span className="font-semibold text-gray-800">격차를 줄입니다</span>
+            </p>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap justify-center lg:justify-start gap-4 animate-slide-up" style={{ animationDelay: '300ms' }}>
+              <Link
+                href="/barcode"
+                className="btn-premium text-lg py-4 px-8 group"
+              >
+                <Play className="w-5 h-5" />
+                <span>데모 체험하기</span>
+                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <Link
+                href="/dashboard?demo=true"
+                className="flex items-center space-x-2 glass-card px-8 py-4 rounded-full font-bold text-lg text-gray-700 hover:text-indigo-600 transition-all group"
+              >
+                <Eye className="w-5 h-5" />
+                <span>대시보드 미리보기</span>
+              </Link>
+            </div>
           </div>
 
-          {/* Main Heading */}
-          <div className="animate-slide-up" style={{ animationDelay: '100ms' }}>
-            <h2 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
-              <span className="text-gradient-aurora">누구나 안전하고</span>
-              <br />
-              <span className="text-gradient">편리한 디지털 생활</span>
-            </h2>
-          </div>
+          {/* Right: Hero Image */}
+          <div className="relative animate-slide-up hidden lg:block" style={{ animationDelay: '400ms' }}>
+            <div className="relative">
+              {/* Main Image */}
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+                <Image
+                  src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop&q=80"
+                  alt="고령자가 스마트폰을 사용하는 모습"
+                  width={600}
+                  height={400}
+                  className="w-full h-auto object-cover"
+                  priority
+                />
+                {/* Overlay gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-indigo-900/40 to-transparent"></div>
+                {/* Badge on image */}
+                <div className="absolute bottom-4 left-4 right-4 glass-card rounded-xl p-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center">
+                      <Shield className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">AI 실시간 보호</p>
+                      <p className="text-sm text-gray-600">언제 어디서나 안전하게</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-          {/* Subtitle */}
-          <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-10 animate-slide-up" style={{ animationDelay: '200ms' }}>
-            <span className="font-semibold text-gray-800">AI 기술</span>로 고령자의 일상을 보호하고,
-            <br className="hidden sm:block" />
-            디지털 세상과의 <span className="font-semibold text-gray-800">격차를 줄입니다</span>
-          </p>
+              {/* Floating cards */}
+              <div className="absolute -top-4 -right-4 glass-card rounded-xl p-3 shadow-lg animate-float">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-rose-400 to-pink-500 rounded-lg flex items-center justify-center">
+                    <Shield className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-sm font-bold text-gray-900">보이스피싱 차단</span>
+                </div>
+              </div>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-wrap justify-center gap-4 animate-slide-up" style={{ animationDelay: '300ms' }}>
-            <Link
-              href="/barcode"
-              className="btn-premium text-lg py-4 px-8 group"
-            >
-              <Play className="w-5 h-5" />
-              <span>데모 체험하기</span>
-              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              href="/dashboard?demo=true"
-              className="flex items-center space-x-2 glass-card px-8 py-4 rounded-full font-bold text-lg text-gray-700 hover:text-indigo-600 transition-all group"
-            >
-              <Eye className="w-5 h-5" />
-              <span>대시보드 미리보기</span>
-            </Link>
+              <div className="absolute -bottom-4 -left-4 glass-card rounded-xl p-3 shadow-lg animate-float" style={{ animationDelay: '1s' }}>
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center">
+                    <Smartphone className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-sm font-bold text-gray-900">키오스크 도우미</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -298,13 +356,24 @@ export default function Home() {
                   <span className="badge badge-new text-[10px]">{feature.badge}</span>
                 </div>
 
-                {/* Icon */}
-                <div className="relative mb-6">
-                  <div className={`w-20 h-20 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-xl shadow-black/10`}>
-                    <feature.icon className="w-10 h-10 text-white" />
+                {/* Feature Image */}
+                <div className="relative mb-4 -mx-8 -mt-8 rounded-t-3xl overflow-hidden">
+                  <Image
+                    src={feature.image}
+                    alt={feature.title}
+                    width={400}
+                    height={200}
+                    className="w-full h-32 object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                  <div className={`absolute inset-0 bg-gradient-to-t ${feature.gradient} opacity-40`}></div>
+                  {/* Icon overlay */}
+                  <div className="absolute bottom-2 left-2">
+                    <div className={`w-14 h-14 bg-gradient-to-br ${feature.gradient} rounded-xl flex items-center justify-center shadow-lg border-2 border-white`}>
+                      <feature.icon className="w-7 h-7 text-white" />
+                    </div>
                   </div>
-                  <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg border border-gray-100">
-                    <span className="text-lg font-black text-gradient">{feature.number}</span>
+                  <div className="absolute bottom-2 right-2 w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-lg">
+                    <span className="text-sm font-black text-gradient">{feature.number}</span>
                   </div>
                 </div>
 

@@ -2,11 +2,21 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Mic, MicOff, AlertTriangle, Shield, Phone, Info, Bell, Brain, Sparkles, Play, PhoneCall, User, Clock, ChevronRight } from 'lucide-react'
 import { speak } from '@/lib/utils'
 import { analyzeVoicePhishingWithGPT4 } from '@/lib/openai-service'
 import PageHeader from '@/components/PageHeader'
 import { MOCK_PHISHING_SCENARIOS, type PhishingScenario } from '@/lib/mock-data'
+
+// 시나리오별 이미지
+const scenarioImages: Record<string, string> = {
+  'government': 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=300&h=200&fit=crop&q=80',
+  'financial': 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=300&h=200&fit=crop&q=80',
+  'loan': 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=300&h=200&fit=crop&q=80',
+  'delivery': 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=300&h=200&fit=crop&q=80',
+  'default': 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=300&h=200&fit=crop&q=80'
+}
 
 interface CallAnalysis {
   timestamp: Date
@@ -321,7 +331,7 @@ export default function VoicePhishingPage() {
                   <button
                     key={scenario.id}
                     onClick={() => startDemoMode(scenario)}
-                    className={`w-full p-4 rounded-xl border-2 text-left transition-all hover:shadow-lg ${
+                    className={`w-full rounded-xl border-2 text-left transition-all hover:shadow-lg overflow-hidden ${
                       scenario.riskLevel === 'high'
                         ? 'border-red-200 hover:border-red-400 bg-red-50'
                         : scenario.riskLevel === 'medium'
@@ -329,8 +339,24 @@ export default function VoicePhishingPage() {
                         : 'border-blue-200 hover:border-blue-400 bg-blue-50'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
+                    <div className="flex items-stretch">
+                      {/* Scenario Image */}
+                      <div className="relative w-28 h-24 flex-shrink-0">
+                        <Image
+                          src={scenarioImages[scenario.id] || scenarioImages['default']}
+                          alt={scenario.title}
+                          fill
+                          className="object-cover"
+                        />
+                        <div className={`absolute inset-0 ${
+                          scenario.riskLevel === 'high'
+                            ? 'bg-red-500/30'
+                            : scenario.riskLevel === 'medium'
+                            ? 'bg-yellow-500/30'
+                            : 'bg-blue-500/30'
+                        }`}></div>
+                      </div>
+                      <div className="flex-1 p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                             scenario.riskLevel === 'high'
@@ -346,7 +372,7 @@ export default function VoicePhishingPage() {
                         <h3 className="font-bold text-gray-900 mb-1">{scenario.title}</h3>
                         <p className="text-sm text-gray-600 line-clamp-2">{scenario.transcript.slice(0, 80)}...</p>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 mt-1" />
+                      <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 self-center mr-3" />
                     </div>
                   </button>
                 ))}

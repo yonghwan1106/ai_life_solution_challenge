@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import {
   ArrowLeft, Target, Lightbulb, Award, CheckCircle, Code, Cpu, Shield,
   TrendingUp, Sparkles, Zap, Heart, Users, Star, Rocket, Globe
@@ -37,19 +38,45 @@ export default function AboutPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-12">
         {/* Hero Section */}
-        <div className="text-center mb-16 animate-slide-up">
-          <div className="inline-flex items-center space-x-2 bg-indigo-50 border border-indigo-200 px-4 py-2 rounded-full mb-6">
-            <Zap className="w-4 h-4 text-indigo-600" />
-            <span className="text-sm font-semibold text-indigo-700">AI 라이프 솔루션 챌린지 2025</span>
+        <div className="grid lg:grid-cols-2 gap-12 items-center mb-16 animate-slide-up">
+          <div className="text-center lg:text-left">
+            <div className="inline-flex items-center space-x-2 bg-indigo-50 border border-indigo-200 px-4 py-2 rounded-full mb-6">
+              <Zap className="w-4 h-4 text-indigo-600" />
+              <span className="text-sm font-semibold text-indigo-700">AI 라이프 솔루션 챌린지 2025</span>
+            </div>
+            <h2 className="text-5xl md:text-6xl font-extrabold mb-6">
+              <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                SafeLife Platform
+              </span>
+            </h2>
+            <p className="text-2xl text-gray-600 max-w-3xl mx-auto lg:mx-0 leading-relaxed">
+              고령자의 디지털 접근성 향상과 안전한 생활을 위한 AI 통합 플랫폼
+            </p>
           </div>
-          <h2 className="text-5xl md:text-6xl font-extrabold mb-6">
-            <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              SafeLife Platform
-            </span>
-          </h2>
-          <p className="text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            고령자의 디지털 접근성 향상과 안전한 생활을 위한 AI 통합 플랫폼
-          </p>
+          {/* Hero Image */}
+          <div className="relative hidden lg:block">
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+              <Image
+                src="https://images.unsplash.com/photo-1516733968668-dbdce39c4651?w=600&h=400&fit=crop&q=80"
+                alt="고령자와 가족이 함께 태블릿을 보는 모습"
+                width={600}
+                height={400}
+                className="w-full h-auto object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-indigo-900/50 to-transparent"></div>
+              <div className="absolute bottom-4 left-4 right-4 glass-card rounded-xl p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
+                    <Heart className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900">함께하는 디지털 생활</p>
+                    <p className="text-sm text-gray-600">세대를 연결하는 AI 기술</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Problem Statement */}

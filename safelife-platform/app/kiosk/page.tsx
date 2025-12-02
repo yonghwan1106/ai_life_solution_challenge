@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import Webcam from 'react-webcam'
 import { Smartphone, Camera, Volume2, Info, Zap, StopCircle, Play, Pause, SkipForward, RotateCcw, Sparkles, CheckCircle, Coffee, Utensils, Train, CreditCard, Building2, Hand } from 'lucide-react'
 import { speak, stopSpeaking } from '@/lib/utils'
@@ -15,6 +16,15 @@ const kioskIcons: Record<string, any> = {
   ticket: Train,
   atm: CreditCard,
   hospital: Building2
+}
+
+// Kiosk type images
+const kioskImages: Record<string, string> = {
+  fastfood: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&h=200&fit=crop&q=80',
+  cafe: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300&h=200&fit=crop&q=80',
+  ticket: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=300&h=200&fit=crop&q=80',
+  atm: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=300&h=200&fit=crop&q=80',
+  hospital: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=300&h=200&fit=crop&q=80'
 }
 
 export default function KioskPage() {
@@ -255,13 +265,23 @@ export default function KioskPage() {
                   <button
                     key={kiosk.type}
                     onClick={() => selectKioskType(kiosk.type)}
-                    className="group relative bg-white rounded-2xl p-6 border-2 border-gray-200 hover:border-blue-400 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+                    className="group relative bg-white rounded-2xl overflow-hidden border-2 border-gray-200 hover:border-blue-400 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
                   >
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <IconComponent className="w-8 h-8 text-white" />
+                    {/* Background Image */}
+                    <div className="relative h-24 overflow-hidden">
+                      <Image
+                        src={kioskImages[kiosk.type] || kioskImages.cafe}
+                        alt={kiosk.name}
+                        fill
+                        className="object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                      <div className="absolute bottom-2 left-2 w-10 h-10 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+                        <IconComponent className="w-5 h-5 text-white" />
                       </div>
-                      <span className="text-4xl">{kiosk.icon}</span>
+                    </div>
+                    <div className="p-4 flex flex-col items-center gap-2">
+                      <span className="text-3xl">{kiosk.icon}</span>
                       <span className="font-semibold text-gray-900">{kiosk.name}</span>
                     </div>
                   </button>

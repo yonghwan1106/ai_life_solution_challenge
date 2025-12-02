@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import Webcam from 'react-webcam'
 import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/library'
 import { ScanBarcode, Camera, Volume2, AlertTriangle, Info, Play, Pause, SkipForward, RotateCcw, Sparkles, CheckCircle } from 'lucide-react'
@@ -21,6 +22,21 @@ interface ProductInfo {
   category?: string
   description?: string
   volume?: string
+  image?: string
+}
+
+// 제품 카테고리별 기본 이미지
+const productImages: { [key: string]: string } = {
+  '우유': 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=300&h=200&fit=crop&q=80',
+  '음료': 'https://images.unsplash.com/photo-1625772299848-391b6a87d7b3?w=300&h=200&fit=crop&q=80',
+  '과자': 'https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=300&h=200&fit=crop&q=80',
+  '면류': 'https://images.unsplash.com/photo-1612929633738-8fe44f7ec841?w=300&h=200&fit=crop&q=80',
+  '라면': 'https://images.unsplash.com/photo-1612929633738-8fe44f7ec841?w=300&h=200&fit=crop&q=80',
+  '빵': 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=300&h=200&fit=crop&q=80',
+  '과일': 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=300&h=200&fit=crop&q=80',
+  '채소': 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300&h=200&fit=crop&q=80',
+  '식품': 'https://images.unsplash.com/photo-1506617420156-8e4536971650?w=300&h=200&fit=crop&q=80',
+  'default': 'https://images.unsplash.com/photo-1553531384-cc64ac80f931?w=300&h=200&fit=crop&q=80'
 }
 
 export default function BarcodePage() {
@@ -651,10 +667,35 @@ export default function BarcodePage() {
             </div>
 
             <div className="space-y-4">
-              {/* Product Name */}
-              <div className="border-b pb-4">
-                <p className="text-sm text-gray-500 mb-1">제품명</p>
-                <p className="text-2xl font-bold text-gray-900">{productInfo.name}</p>
+              {/* Product Image & Name */}
+              <div className="flex gap-6 border-b pb-6">
+                {/* Product Image */}
+                <div className="flex-shrink-0">
+                  <div className="relative w-32 h-32 rounded-2xl overflow-hidden shadow-lg border-2 border-green-100">
+                    <Image
+                      src={productInfo.image || productImages[productInfo.category || ''] || productImages['default']}
+                      alt={productInfo.name}
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                  </div>
+                </div>
+                {/* Product Name & Category */}
+                <div className="flex-1">
+                  <p className="text-sm text-gray-500 mb-1">제품명</p>
+                  <p className="text-2xl font-bold text-gray-900 mb-2">{productInfo.name}</p>
+                  {productInfo.category && (
+                    <span className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
+                      {productInfo.category}
+                    </span>
+                  )}
+                  {productInfo.volume && (
+                    <span className="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium ml-2">
+                      {productInfo.volume}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Manufacturer */}
