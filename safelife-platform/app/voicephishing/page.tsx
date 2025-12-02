@@ -188,11 +188,11 @@ export default function VoicePhishingPage() {
 
     // Start typing animation after a short delay
     setTimeout(() => {
-      startTypingAnimation(scenario.transcript)
+      startTypingAnimation(scenario.transcript, scenario)
     }, 2000)
   }
 
-  const startTypingAnimation = (text: string) => {
+  const startTypingAnimation = (text: string, scenario: PhishingScenario) => {
     setIsTyping(true)
     let index = 0
 
@@ -207,13 +207,12 @@ export default function VoicePhishingPage() {
         }
         setIsTyping(false)
         setCurrentTranscript(text)
-        analyzeScenario()
+        analyzeScenario(scenario)
       }
     }, 50) // 50ms per character
   }
 
-  const analyzeScenario = () => {
-    if (!selectedScenario) return
+  const analyzeScenario = (scenario: PhishingScenario) => {
 
     setIsAnalyzing(true)
 
@@ -221,13 +220,13 @@ export default function VoicePhishingPage() {
     setTimeout(() => {
       const callAnalysis: CallAnalysis = {
         timestamp: new Date(),
-        transcription: selectedScenario.transcript,
-        riskLevel: selectedScenario.riskLevel,
-        confidence: selectedScenario.riskLevel === 'high' ? 92 : selectedScenario.riskLevel === 'medium' ? 78 : 55,
-        detectedPatterns: selectedScenario.patterns,
-        recommendation: selectedScenario.recommendation,
-        reasoning: `이 통화는 "${selectedScenario.typeName}" 유형의 보이스피싱으로 판단됩니다. ${selectedScenario.patterns.join(', ')} 등의 특징이 감지되었습니다.`,
-        suspiciousKeywords: extractKeywords(selectedScenario.transcript),
+        transcription: scenario.transcript,
+        riskLevel: scenario.riskLevel,
+        confidence: scenario.riskLevel === 'high' ? 92 : scenario.riskLevel === 'medium' ? 78 : 55,
+        detectedPatterns: scenario.patterns,
+        recommendation: scenario.recommendation,
+        reasoning: `이 통화는 "${scenario.typeName}" 유형의 보이스피싱으로 판단됩니다. ${scenario.patterns.join(', ')} 등의 특징이 감지되었습니다.`,
+        suspiciousKeywords: extractKeywords(scenario.transcript),
         isAIAnalyzed: true
       }
 
@@ -236,10 +235,10 @@ export default function VoicePhishingPage() {
       setIsAnalyzing(false)
 
       // Voice alert
-      if (selectedScenario.riskLevel === 'high') {
+      if (scenario.riskLevel === 'high') {
         speak('위험! 보이스피싱이 감지되었습니다. 즉시 전화를 끊으세요.')
         setGuardianNotified(true)
-      } else if (selectedScenario.riskLevel === 'medium') {
+      } else if (scenario.riskLevel === 'medium') {
         speak('주의! 의심스러운 통화가 감지되었습니다.')
       } else {
         speak('주의가 필요한 통화입니다.')
