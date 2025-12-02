@@ -10,11 +10,39 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function speak(text: string, lang: string = 'ko-KR'): void {
   if ('speechSynthesis' in window) {
+    // Cancel any ongoing speech first
+    window.speechSynthesis.cancel()
+
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = lang
     utterance.rate = 0.9
     utterance.pitch = 1.0
+    utterance.volume = 1.0
+
+    // Get Korean voice if available
+    const voices = window.speechSynthesis.getVoices()
+    const koreanVoice = voices.find(voice => voice.lang.includes('ko'))
+    if (koreanVoice) {
+      utterance.voice = koreanVoice
+    }
+
+    // Fix for Chrome bug where speech doesn't work after idle
+    // Resume speechSynthesis if it's paused
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume()
+    }
+
     window.speechSynthesis.speak(utterance)
+
+    // Chrome workaround: keep speech alive
+    const keepAlive = setInterval(() => {
+      if (!window.speechSynthesis.speaking) {
+        clearInterval(keepAlive)
+      } else {
+        window.speechSynthesis.pause()
+        window.speechSynthesis.resume()
+      }
+    }, 10000)
   }
 }
 
