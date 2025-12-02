@@ -933,7 +933,7 @@ export const MOCK_ELDERLY_USERS: ElderlyUser[] = [
     statusMessage: '정상 활동 중',
     lastActivity: Date.now() - 30 * 60 * 1000, // 30분 전
     lastActivityType: '바코드 스캔',
-    photo: 'https://images.unsplash.com/photo-1566616213894-2d4e1baee5d8?w=200&h=200&fit=crop',
+    photo: '/images/profile_elderly_1.png',
     phone: '010-1234-5678',
     address: '서울시 강남구 테헤란로 123',
     weeklyStats: {
@@ -951,7 +951,7 @@ export const MOCK_ELDERLY_USERS: ElderlyUser[] = [
     statusMessage: '2시간 동안 활동 없음',
     lastActivity: Date.now() - 2 * 60 * 60 * 1000, // 2시간 전
     lastActivityType: '키오스크 도움',
-    photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop',
+    photo: '/images/profile_elderly_2.png',
     phone: '010-2345-6789',
     address: '서울시 강남구 테헤란로 123',
     weeklyStats: {
@@ -969,7 +969,7 @@ export const MOCK_ELDERLY_USERS: ElderlyUser[] = [
     statusMessage: '정상 활동 중',
     lastActivity: Date.now() - 15 * 60 * 1000, // 15분 전
     lastActivityType: '바코드 스캔',
-    photo: 'https://images.unsplash.com/photo-1581579438747-104c53d7fbc4?w=200&h=200&fit=crop',
+    photo: '/images/profile_elderly_3.png',
     phone: '010-3456-7890',
     address: '서울시 서초구 반포대로 45',
     weeklyStats: {
@@ -987,7 +987,7 @@ export const MOCK_ELDERLY_USERS: ElderlyUser[] = [
     statusMessage: '정상 활동 중',
     lastActivity: Date.now() - 45 * 60 * 1000, // 45분 전
     lastActivityType: '앱 접속',
-    photo: 'https://images.unsplash.com/photo-1559526323-cb2f2fe2591b?w=200&h=200&fit=crop',
+    photo: '/images/profile_elderly_4.png',
     phone: '010-4567-8901',
     address: '서울시 서초구 반포대로 45',
     weeklyStats: {
@@ -1005,7 +1005,7 @@ export const MOCK_ELDERLY_USERS: ElderlyUser[] = [
     statusMessage: '보이스피싱 의심 전화 감지',
     lastActivity: Date.now() - 5 * 60 * 1000, // 5분 전
     lastActivityType: '피싱 감지',
-    photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop',
+    photo: '/images/profile_elderly_5.png',
     phone: '010-5678-9012',
     address: '경기도 성남시 분당구 정자동 78',
     weeklyStats: {
