@@ -71,19 +71,18 @@ function DashboardContent() {
   const [alerts, setAlerts] = useState<MockAlert[]>(MOCK_ALERTS)
   const weeklyStats = getWeeklyStats()
 
-  // 데모 모드 체크 - URL 파라미터 또는 버튼 클릭
+  // 데모 모드 및 인증 체크 - 하나의 effect로 통합
   useEffect(() => {
     const demoParam = searchParams.get('demo')
+
+    // 데모 모드 체크
     if (demoParam === 'true') {
       setIsDemoMode(true)
       setLoading(false)
+      return
     }
-  }, [searchParams])
 
-  // 인증 체크
-  useEffect(() => {
-    if (isDemoMode) return
-
+    // 인증 체크 (데모 모드가 아닌 경우에만)
     const currentUser = auth.getCurrentUser()
 
     if (!currentUser) {
@@ -98,7 +97,7 @@ function DashboardContent() {
 
     setUser(currentUser)
     setLoading(false)
-  }, [isDemoMode])
+  }, [searchParams, router])
 
   // 통계 애니메이션
   useEffect(() => {
