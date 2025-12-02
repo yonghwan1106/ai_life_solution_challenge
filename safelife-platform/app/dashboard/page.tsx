@@ -296,30 +296,27 @@ function DashboardContent() {
                           alerts.slice(0, 5).map((alert, idx) => (
                             <div
                               key={alert.id}
-                              className={`px-6 py-4 border-b border-gray-100 hover:bg-gray-50 transition-colors animate-fade-in-up ${
-                                !alert.acknowledged ? 'bg-blue-50' : ''
-                              }`}
+                              className={`px-6 py-4 border-b border-gray-100 hover:bg-gray-50 transition-colors animate-fade-in-up ${!alert.acknowledged ? 'bg-blue-50' : ''
+                                }`}
                               style={{ animationDelay: `${idx * 50}ms` }}
                             >
                               <div className="flex items-start space-x-3">
                                 <div
-                                  className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                                    alert.severity === 'high'
+                                  className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${alert.severity === 'high'
                                       ? 'bg-red-100'
                                       : alert.severity === 'medium'
-                                      ? 'bg-yellow-100'
-                                      : 'bg-blue-100'
-                                  }`}
+                                        ? 'bg-yellow-100'
+                                        : 'bg-blue-100'
+                                    }`}
                                 >
                                   {alert.type === 'voice_phishing' ? (
                                     <Shield
-                                      className={`w-5 h-5 ${
-                                        alert.severity === 'high'
+                                      className={`w-5 h-5 ${alert.severity === 'high'
                                           ? 'text-red-600'
                                           : alert.severity === 'medium'
-                                          ? 'text-yellow-600'
-                                          : 'text-blue-600'
-                                      }`}
+                                            ? 'text-yellow-600'
+                                            : 'text-blue-600'
+                                        }`}
                                     />
                                   ) : alert.type === 'emergency' ? (
                                     <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -386,7 +383,7 @@ function DashboardContent() {
             <div className="flex items-center space-x-5">
               <div className="relative">
                 <img
-                  src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=200&h=200&fit=crop&q=80"
+                  src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&q=80"
                   alt="보호자 프로필"
                   className="w-20 h-20 rounded-2xl object-cover border-4 border-white shadow-lg transform hover:scale-110 hover:rotate-6 transition-all duration-500"
                 />
@@ -508,13 +505,12 @@ function DashboardContent() {
               <div
                 key={elderly.id}
                 onClick={() => setSelectedElderly(elderly)}
-                className={`p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer hover:card-shadow-hover transform hover:-translate-y-1 animate-fade-in-up ${
-                  elderly.status === 'danger'
+                className={`p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer hover:card-shadow-hover transform hover:-translate-y-1 animate-fade-in-up ${elderly.status === 'danger'
                     ? 'border-red-300 bg-red-50 animate-alert-pulse'
                     : elderly.status === 'warning'
-                    ? 'border-yellow-300 bg-yellow-50'
-                    : 'border-gray-200 bg-gray-50 hover:border-indigo-300'
-                }`}
+                      ? 'border-yellow-300 bg-yellow-50'
+                      : 'border-gray-200 bg-gray-50 hover:border-indigo-300'
+                  }`}
                 style={{ animationDelay: `${idx * 100}ms` }}
               >
                 <div className="flex items-center space-x-4">
@@ -525,13 +521,12 @@ function DashboardContent() {
                       className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-lg"
                     />
                     <div
-                      className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center ${
-                        elderly.status === 'safe'
+                      className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center ${elderly.status === 'safe'
                           ? 'bg-green-500'
                           : elderly.status === 'warning'
-                          ? 'bg-yellow-500'
-                          : 'bg-red-500 animate-pulse'
-                      }`}
+                            ? 'bg-yellow-500'
+                            : 'bg-red-500 animate-pulse'
+                        }`}
                     >
                       {elderly.status === 'safe' ? (
                         <CheckCircle className="w-4 h-4 text-white" />
@@ -551,10 +546,9 @@ function DashboardContent() {
                   <ChevronRight className="w-5 h-5 text-gray-400" />
                 </div>
                 <div className="mt-3 pt-3 border-t border-gray-200">
-                  <p className={`text-sm font-medium ${
-                    elderly.status === 'danger' ? 'text-red-600' :
-                    elderly.status === 'warning' ? 'text-yellow-600' : 'text-green-600'
-                  }`}>
+                  <p className={`text-sm font-medium ${elderly.status === 'danger' ? 'text-red-600' :
+                      elderly.status === 'warning' ? 'text-yellow-600' : 'text-green-600'
+                    }`}>
                     {elderly.statusMessage}
                   </p>
                 </div>
@@ -631,21 +625,19 @@ function DashboardContent() {
               {alerts.slice(0, 6).map((alert, idx) => (
                 <div
                   key={alert.id}
-                  className={`p-4 rounded-xl border-l-4 transition-all duration-300 animate-fade-in-up ${
-                    alert.severity === 'high'
+                  className={`p-4 rounded-xl border-l-4 transition-all duration-300 animate-fade-in-up ${alert.severity === 'high'
                       ? 'border-red-500 bg-red-50'
                       : alert.severity === 'medium'
-                      ? 'border-yellow-500 bg-yellow-50'
-                      : 'border-blue-500 bg-blue-50'
-                  } ${alert.acknowledged ? 'opacity-60' : ''}`}
+                        ? 'border-yellow-500 bg-yellow-50'
+                        : 'border-blue-500 bg-blue-50'
+                    } ${alert.acknowledged ? 'opacity-60' : ''}`}
                   style={{ animationDelay: `${idx * 50}ms` }}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center space-x-2">
                       {alert.type === 'voice_phishing' ? (
-                        <Shield className={`w-5 h-5 ${
-                          alert.severity === 'high' ? 'text-red-600' : 'text-yellow-600'
-                        }`} />
+                        <Shield className={`w-5 h-5 ${alert.severity === 'high' ? 'text-red-600' : 'text-yellow-600'
+                          }`} />
                       ) : alert.type === 'emergency' ? (
                         <AlertTriangle className="w-5 h-5 text-red-600" />
                       ) : alert.type === 'daily_report' ? (
