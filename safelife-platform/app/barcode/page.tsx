@@ -125,7 +125,8 @@ export default function BarcodePage() {
         allergens: product.allergens,
         warnings: product.warnings,
         category: product.category,
-        volume: product.volume
+        volume: product.volume,
+        image: product.image
       }
 
       setProductInfo(info)

@@ -16,6 +16,7 @@ export interface MockProduct {
   volume?: string
   calories?: number
   expiryDays?: number
+  image?: string
 }
 
 export const MOCK_PRODUCTS: MockProduct[] = [
@@ -385,13 +386,21 @@ export function getRandomProducts(count: number): MockProduct[] {
 
 // 데모용 추천 제품 (알레르기 있는 제품 포함)
 export function getDemoProducts(): MockProduct[] {
-  return [
-    MOCK_PRODUCTS[0],  // 서울우유 (우유 알레르기)
-    MOCK_PRODUCTS[8],  // 초코파이 (밀, 계란, 대두, 우유)
-    MOCK_PRODUCTS[18], // 타이레놀 (의약품 경고)
-    MOCK_PRODUCTS[11], // 맛동산 (땅콩 알레르기)
-    MOCK_PRODUCTS[5],  // 제주삼다수 (무알레르기)
+  // 데모 제품에 사용자 이미지 매핑
+  const demoImages = [
+    '/images/z1_seoul_milk.png',     // 서울우유
+    '/images/z2_chochopie.webp',     // 초코파이
+    '/images/z3_brupen.webp',        // 타이레놀 (부루펜 이미지 사용)
+    '/images/z4_makdongsan.webp',    // 맛동산
+    '/images/z5_samdasoo.webp',      // 삼다수
   ]
+
+  const demoProductIndices = [0, 8, 18, 11, 5]
+
+  return demoProductIndices.map((idx, i) => ({
+    ...MOCK_PRODUCTS[idx],
+    image: demoImages[i]
+  }))
 }
 
 
